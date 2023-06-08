@@ -2,26 +2,22 @@
 
 class Point {
     constructor(x=0, y=0) {
-        
         this.x = Number(x);
         this.y = Number(y);
     }
-    roundTo(val = 10)
-    {
+    roundTo(val = 10){
         this.x = Math.round(this.x/val)*val;
         this.y = Math.round(this.y/val)*val;
         return this;
     }
-    add(x,y=0)
-    {
+    add(x,y=0){
         if (x instanceof Point) {
             y = x.y;
             x = x.x;
         }
         return new Point(this.x + x, this.y + y);
     }
-    addi(x,y=0)
-    {
+    addi(x,y=0){
         if (x instanceof Point) {
             y = x.y;
             x = x.x;
@@ -30,16 +26,14 @@ class Point {
         this.y += y;
         return this;
     }
-    sub(x,y=0)
-    {
+    sub(x,y=0){
         if (x instanceof Point) {
             y = x.y;
             x = x.x;
         }
         return new Point(this.x - x, this.y - y);
     }
-    subi(x,y=0)
-    {
+    subi(x,y=0){
         if (x instanceof Point) {
             y = x.y;
             x = x.x;
@@ -48,10 +42,8 @@ class Point {
         this.y -= y;
         return this;
     }
-    set(x,y=0)
-    {
-        if (x instanceof Point)
-        {
+    set(x,y=0){
+        if (x instanceof Point){
             this.x = x.x;
             this.y = x.y;
             return;
@@ -59,37 +51,29 @@ class Point {
         this.x = x;
         this.y = y;
     }
-    getHashCode()
-    {
+    getHashCode(){
         return this.x*1000000 + this.y;
     }
-    fromHashCode(hash, roundTo=1)
-    {
+    fromHashCode(hash, roundTo=1){
         this.x = Math.round((hash/1000000)/roundTo)*roundTo;
         this.y = Math.round((hash - this.x*1000000)/roundTo)*roundTo;
         return this;
     }
 
-    copy()
-    {
-        return new Point(this.x, this.y);
-    }
+    copy(){return new Point(this.x, this.y);}
 
     equalTo(x,y) {
-        if (x instanceof Point)
-        {
+        if (x instanceof Point){
             y = x.y;
             x = x.x;
         }
-        if (x == this.x && y == this.y)
-        {
+        if (x == this.x && y == this.y){
             return true;
         }
         return false;
     }
     distTo(x,y) {
-        if (x instanceof Point)
-        {
+        if (x instanceof Point){
             y = x.y;
             x = x.x;
         }
@@ -98,18 +82,15 @@ class Point {
 }
 
 
-function styleFromVoltage(voltage, multiplier=25)
-{
+function styleFromVoltage(voltage, multiplier=25){
     voltage = Number(voltage);
-    if (isNaN(voltage))
-    {
+    if (isNaN(voltage)){
         return "rgb(0,0,0)";
     }
     return "rgb("+Math.round(Math.min(Math.max(0,-multiplier*voltage), 150))+","+Math.round(Math.min(Math.max(0,multiplier*voltage), 150))+",0)";
 }
 
-function renderWire(ctx, componentWidth, startPoint, endPoint, value,)
-{
+function renderWire(ctx, componentWidth, startPoint, endPoint, value,){
     //ctx.strokeStyle = styleFromVoltage(voltageN1);
     ctx.beginPath();
     ctx.moveTo(startPoint.x, startPoint.y);
@@ -125,22 +106,14 @@ function renderWire(ctx, componentWidth, startPoint, endPoint, value,)
     ctx.closePath();
 }
 
-function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSimulationData)
-{
+function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSimulationData){
     const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
     const length = Math.sqrt( Math.pow(endPoint.x-startPoint.x, 2) + Math.pow(endPoint.y-startPoint.y,2) );
     let rotAngle = angle;                
                 
-    if (rotAngle < 0)
-    {
-        rotAngle += Math.PI*2;
-    }
-    if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2)
-    {
-        rotAngle = angle;
-    } else {
-        rotAngle = angle+Math.PI;
-    }
+    if (rotAngle < 0){  rotAngle += Math.PI*2;  }
+    if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2){   rotAngle = angle;
+    } else {    rotAngle = angle+Math.PI;   }
 
     //ctx.fillStyle = 'rgb(0,0,0)';
     ctx.textAlign = "center";
@@ -183,23 +156,15 @@ function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSi
     ctx.fillRect(endPoint.x-w, endPoint.y-w, 2*w,2*w)
 }
 
-function renderCapacitor(ctx, componentWidth, startPoint, endPoint, value, compSimulationData)
-{
+function renderCapacitor(ctx, componentWidth, startPoint, endPoint, value, compSimulationData){
     const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
     const length = Math.sqrt( Math.pow(endPoint.x-startPoint.x, 2) + Math.pow(endPoint.y-startPoint.y,2) );
 
     let rotAngle = angle;                
                 
-    if (rotAngle < 0)
-    {
-        rotAngle += Math.PI*2;
-    }
-    if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2)
-    {
-        rotAngle = angle;
-    } else {
-        rotAngle = angle+Math.PI;
-    }
+    if (rotAngle < 0){  rotAngle += Math.PI*2;  }
+    if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2){   rotAngle = angle;
+    } else {    rotAngle = angle+Math.PI;   }
     
     const eVoltage = compSimulationData.startNodeVoltage;
     const sVoltage = compSimulationData.endNodeVoltage;
@@ -238,30 +203,17 @@ function renderCapacitor(ctx, componentWidth, startPoint, endPoint, value, compS
 
 }
 
-function renderInductor(ctx, componentWidth, startPoint, endPoint, value)
-{
-
+function renderInductor(ctx, componentWidth, startPoint, endPoint, value){
     const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
     const length = Math.sqrt( Math.pow(endPoint.x-startPoint.x, 2) + Math.pow(endPoint.y-startPoint.y,2) );
     
-
     let rotAngle = angle;                
                 
-    if (rotAngle < 0)
-    {
-        rotAngle += Math.PI*2;
-    }
-    if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2)
-    {
-        rotAngle = angle;
-    } else {
-        rotAngle = angle+Math.PI;
-    }
-    
+    if (rotAngle < 0){ rotAngle += Math.PI*2;   }
+    if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2){   rotAngle = angle;
+    } else { rotAngle = angle+Math.PI;  }
     
     ctx.beginPath();
-
-
     //ctx.fillStyle = 'rgb(0,0,0)';
     ctx.textAlign = "center";
     ctx.save();
@@ -302,28 +254,16 @@ function renderInductor(ctx, componentWidth, startPoint, endPoint, value)
     ctx.fillRect(endPoint.x-w, endPoint.y-w, 2*w,2*w)
 
     ctx.closePath();
-
 }
 
-function renderVoltage2n(ctx, componentWidth, startPoint, endPoint, value)
-{
-
+function renderVoltage2n(ctx, componentWidth, startPoint, endPoint, value){
     const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
     const length = Math.sqrt( Math.pow(endPoint.x-startPoint.x, 2) + Math.pow(endPoint.y-startPoint.y,2) );
 
-    let rotAngle = angle;                
-                
-    if (rotAngle < 0)
-    {
-        rotAngle += Math.PI*2;
-    }
-    if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2)
-    {
-        rotAngle = angle;
-    } else {
-        rotAngle = angle+Math.PI;
-    }
-    
+    let rotAngle = angle;                           
+    if (rotAngle < 0){  rotAngle += Math.PI*2;}
+    if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2){   rotAngle = angle;
+    } else {    rotAngle = angle+Math.PI;   }
     
     ctx.beginPath();
 
@@ -354,11 +294,9 @@ function renderVoltage2n(ctx, componentWidth, startPoint, endPoint, value)
     ctx.fillRect(endPoint.x-w, endPoint.y-w, 2*w,2*w)
 
     ctx.closePath();
-
 }
 
-function renderVoltage1n(ctx, componentWidth, startPoint, endPoint, value)
-{
+function renderVoltage1n(ctx, componentWidth, startPoint, endPoint, value){
     ctx.beginPath();
     ctx.moveTo(startPoint.x, startPoint.y);
     ctx.lineTo(endPoint.x, endPoint.y);
@@ -371,9 +309,7 @@ function renderVoltage1n(ctx, componentWidth, startPoint, endPoint, value)
     ctx.closePath();
 }
 
-function renderDiode(ctx, componentWidth, startPoint, endPoint, value)
-{
-
+function renderDiode(ctx, componentWidth, startPoint, endPoint, value){
     const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
     const length = Math.sqrt( Math.pow(endPoint.x-startPoint.x, 2) + Math.pow(endPoint.y-startPoint.y,2) );
 
@@ -390,7 +326,6 @@ function renderDiode(ctx, componentWidth, startPoint, endPoint, value)
     } else {
         rotAngle = angle+Math.PI;
     }*/
-    
     
     ctx.beginPath();
 
@@ -425,19 +360,14 @@ function renderDiode(ctx, componentWidth, startPoint, endPoint, value)
     ctx.fillRect(endPoint.x-w, endPoint.y-w, 2*w,2*w)
 
     ctx.closePath();
-
 }
 
 
 //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString,
-class UIComponent
-{
-    constructor(type="wire", startPoint=new Point(), endPoint=new Point(100,100), value)
-    {
-        if (type != null && type.length > 1)
-        {
-            type.toLowerCase();
-        }
+class UIComponent{
+    constructor(type="wire", startPoint=new Point(), endPoint=new Point(100,100), value){
+        if (type != null && type.length > 1){   type.toLowerCase(); }
+
         //allowable types: wire,w, resistor,r, capacitor,c, inductor,i, currentSource,cs, v,voltage2n,v2n, voltage1n,v1n,V,
         this.type = type;
         this.name = this.type[0] + Math.round(Math.random()*1000);
@@ -453,11 +383,9 @@ class UIComponent
         this.currentMultiplier = 100;
         this.plotTimeDivisor = 5; //for speeding up...
 
-
         this.renderFunction = renderWire;
         let tempVal = '1';
-        switch (type)
-        {
+        switch (type){
             case "r": 
             case "resistor": this.renderFunction = renderResistor; tempVal = '1k'; break;
             case "c": 
@@ -474,95 +402,80 @@ class UIComponent
             case "d": this.renderFunction = renderDiode; tempVal = '0.7'; break;
         }
 
-        if (value == null)
-        {
-            value = tempVal;
-        }
+        if (value == null){ value = tempVal;    }
         this.value = 1;//either a resist
         this.valueString = "1";
         this.setValue(value);
     }
-    setStartPoint(x,y)
-    {
-        if (x instanceof Point)
-        {
+    setStartPoint(x,y){
+        if (x instanceof Point){
             y = x.y;
             x = x.x;
         }
         this.startPoint = new Point(x,y);
     }
-    setEndPoint(x,y)
-    {
-        if (x instanceof Point)
-        {
+    setEndPoint(x,y){
+        if (x instanceof Point){
             y = x.y;
             x = x.x;
         }
         this.endPoint = new Point(x,y);
     }
-    setValue(newValue = 1000)
-    {
+    setValue(newValue = 1000){
         this.valueString = String(newValue);
         //console.log("Inputted string: " + newValue);
 
-
         //Check for postfix
+        //could be optimized with indexOf -Andrew
         const validChars = ['p', 'n', 'u', 'm', 'k', 'M'];
         const validCharsLookup = [0.000000000001, 0.000000001, 0.000001, 0.001, 1000, 1000000];
         let validCharIndex = null;
         let index = 0;
-        let loop = 0;
-        while (index < this.valueString.length && loop < 100)
-        {
-            for (let i=0; i<validChars.length; i++)
-            {
-                if (this.valueString[index] == validChars[i])
-                {
+        for (let i=0; i<validChars.length; i++){
+            index=this.valueString.indexOf(validChars[i]);
+            if (index>0){
+                validCharIndex = i;
+                break;
+            }
+        }
+        /*
+        while (index < this.valueString.length && index < 100){
+            for (let i=0; i<validChars.length; i++){
+                if (this.valueString[index] == validChars[i]){
                     validCharIndex = i;
                     break;
                 }
             }
-            if (validCharIndex != null) { break; }
             index += 1;
-            loop += 1;
         }
-
+        */
         let number = Number(this.valueString.slice(0,index));
         //console.log(this.valueString.slice(0,index));
 
         //If number is null, it is not a valid number.
-        if (isNaN(number) == true)
-        {
+        if (isNaN(number) == true){
             this.valueIsValid = false;
             return;
         }
 
         this.valueIsValid = true;
 
-        if (validCharIndex == null)
-        {
-            this.value = number;
-        } else {
-            this.value = number * validCharsLookup[validCharIndex];
-        }
+        if (validCharIndex == null){    this.value = number;
+        } else {    this.value = number * validCharsLookup[validCharIndex]; }
         return this.value;
         //console.log("New value: " + this.value + "  index: " + validCharIndex);
     }
-    render(ctx, componentWidth, compSimulationData)
-    {
+    render(ctx, componentWidth, compSimulationData){
         this.renderFunction(ctx, componentWidth, this.startPoint.roundTo(gridSize), this.endPoint.roundTo(gridSize), this.valueString, compSimulationData);
     }
-    toString()
-    {
+    toString(){
         //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString1, valueString2...;
         return this.type+","+this.startPoint.x+","+this.startPoint.y+","+this.endPoint.x+","+this.endPoint.y+","+this.valueString+";";
     }
 }
 
-class UIButton
-{
-    constructor(text="button", startPoint=new Point(), size=new Point(), backgroundColor = "grey", textColor = "black", highlightColor = "lightgrey")
-    {
+class UIButton{
+    constructor(text="button", startPoint=new Point(), size=new Point(), backgroundColor = "grey", textColor = "black", highlightColor = "lightgrey"){
         this.text = text;
         this.startPoint = startPoint;
         this.size = size;
@@ -570,46 +483,21 @@ class UIButton
         this.textColor = textColor;
         this.highlightColor = highlightColor;
     }
-    setPosition(upperLeftStartPoint = new Point())
-    {
-        this.startPoint = upperLeftStartPoint;
+    setPosition(upperLeftStartPoint = new Point()){ this.startPoint = upperLeftStartPoint;  }
+    setSize(widthAndHeight = new Point()){  this.size = widthAndHeight; }
+    pointIsOverButton(point){
+        return(point.x >= this.startPoint.x && point.x <= this.startPoint.x + this.size.x &&
+            point.y >= this.startPoint.y && point.y <= this.startPoint.y + this.size.y );
     }
-    setSize(widthAndHeight = new Point())
-    {
-        this.size = widthAndHeight;
-    }
-    pointIsOverButton(point)
-    {
-        if (point.x >= this.startPoint.x && point.x <= this.startPoint.x + this.size.x &&
-            point.y >= this.startPoint.y && point.y <= this.startPoint.y + this.size.y )
-        {
-            return true;
-        }
-        return false;
-    }
-    render(ctx, highlight = false, highlightColor = null) //highlight can be boolean, a color string, or mousePos val
-    {
-        
+    render(ctx, highlight = false, highlightColor = null){ //highlight can be boolean, a color string, or mousePos val
         const tempFillStyle = ctx.fillStyle;
 
-        
+        if (highlight instanceof Point){    highlight = this.pointIsOverButton(highlight);  }
 
-        if (highlight instanceof Point)
-        {
-            highlight = this.pointIsOverButton(highlight);
-        }
-
-        if (highlight == true)
-        {
-            if (highlightColor != null)
-            {
-                ctx.fillStyle = highlightColor;
-            } else {
-                ctx.fillStyle = this.highlightColor;
-            }
-        } else {
-            ctx.fillStyle = this.backgroundColor;
-        }
+        if (highlight == true){
+            if (highlightColor != null){    ctx.fillStyle = highlightColor;
+            } else {    ctx.fillStyle = this.highlightColor;    }
+        } else {    ctx.fillStyle = this.backgroundColor;   }
 
         ctx.fillRect(this.startPoint.x, this.startPoint.y, this.size.x, this.size.y);
         ctx.fillStyle = this.textColor;
@@ -622,19 +510,13 @@ class UIButton
     }
 }
 
-class UIPlot extends UIButton
-{
-    constructor(component)
-    {
+class UIPlot extends UIButton{
+    constructor(component){
         super();
         this.component = component;
     }
-    getComponent()
-    {
-        return this.component;
-    }
-    render(ctx, plotWidth, plotHeight, startX, startY, midY)
-    {
+    getComponent(){ return this.component;  }
+    render(ctx, plotWidth, plotHeight, startX, startY, midY){
         this.ctx = ctx;
         this.startPosition = new Point(startX, startY);
         this.size = new Point(plotWidth, plotHeight);
@@ -677,8 +559,7 @@ class UIPlot extends UIButton
 
         if (dataLength < 2) { return; }
 
-        for (let j=Math.max(0, dataLength-plotWidth*c.plotTimeDivisor); j<dataLength; j+=c.plotTimeDivisor)
-        {
+        for (let j=Math.max(0, dataLength-plotWidth*c.plotTimeDivisor); j<dataLength; j+=c.plotTimeDivisor){
             nextY = c.voltageData[Math.round(j)]*c.voltageMultiplier;
             if (nextY > maxY) { maxY = nextY; }
             if (nextY < minY) { minY = nextY; }
@@ -689,11 +570,9 @@ class UIPlot extends UIButton
         this.ctx.stroke();
         this.ctx.closePath();
 
-        if ((maxY + 20 > plotHeight/2 || minY - 20< -plotHeight/2) && c.voltageMultiplier > 1) //decrease voltage scale
-        {
+        if ((maxY + 20 > plotHeight/2 || minY - 20< -plotHeight/2) && c.voltageMultiplier > 1){ //decrease voltage scale
             c.voltageMultiplier *= 0.9;
-        } else if ((maxY < plotHeight/4 && minY > -plotHeight/4) && c.voltageMultiplier < 100000) //increase voltage scale
-        {
+        } else if ((maxY < plotHeight/4 && minY > -plotHeight/4) && c.voltageMultiplier < 100000){ //increase voltage scale
             c.voltageMultiplier *= 1.1;
         }
 
@@ -710,8 +589,7 @@ class UIPlot extends UIButton
         minY=0;
         nextY = y;
         this.ctx.moveTo(x,y);
-        for (let j=Math.max(0, dataLength-plotWidth*c.plotTimeDivisor); j<dataLength; j+=c.plotTimeDivisor)
-        {
+        for (let j=Math.max(0, dataLength-plotWidth*c.plotTimeDivisor); j<dataLength; j+=c.plotTimeDivisor){
             nextY = c.currentData[Math.round(j)]*c.currentMultiplier;
             if (nextY > maxY) { maxY = nextY; }
             if (nextY < minY) { minY = nextY; }
@@ -721,20 +599,16 @@ class UIPlot extends UIButton
         }
         this.ctx.stroke();
         this.ctx.closePath();    
-        if ((maxY + 20 > plotHeight/2 || minY - 20 < -plotHeight/2) && c.currentMultiplier > 1) //decrease voltage scale
-        {
+        if ((maxY + 20 > plotHeight/2 || minY - 20 < -plotHeight/2) && c.currentMultiplier > 1){ //decrease voltage scale
             c.currentMultiplier *= 0.9;
-        } else if ((maxY < plotHeight/4 && minY > -plotHeight/4) && c.currentMultiplier < 100000) //increase voltage scale
-        {
+        } else if ((maxY < plotHeight/4 && minY > -plotHeight/4) && c.currentMultiplier < 100000){ //increase voltage scale
             c.currentMultiplier *= 1.1;
         }     
     }
 }
 
-class CircuitUI
-{
-    constructor(htmlCanvasElement)
-    {
+class CircuitUI{
+    constructor(htmlCanvasElement){
         //Circuit stuff
         this.components = [];//[new UIComponent(), new UIComponent("resistor", new Point(50,200))];
 
@@ -784,9 +658,7 @@ class CircuitUI
         this.resize();
     }
     render() {
-
-        if (this.run == true )
-        {
+        if (this.run == true ){
             /*if (this.editedCircuit == true)
             {
                 this.circuit = new Circuit( this._getCircuitText() );
@@ -814,24 +686,17 @@ class CircuitUI
         const color = "black";
         const highlightColor = "blue";
 
-        for (let i=0; i<this.components.length; i++)
-        {
+        for (let i=0; i<this.components.length; i++){
             ctx.strokeStyle = color;
             ctx.fillStyle = color;
 
             const compSimulationData = this.circuit.getComponentData(this.components[i].name);
 
-            if (this.components[i] == this.selectedComponent)
-            {
+            if (this.components[i] == this.selectedComponent){
                 ctx.strokeStyle = highlightColor;
-                if (this.userState == "editingComponentValue")
-                {
-                    if (this.components[i].valueIsValid == true)
-                    {
-                        ctx.fillStyle = "green";
-                    } else {
-                        ctx.fillStyle = "red";
-                    }
+                if (this.userState == "editingComponentValue"){
+                    if (this.components[i].valueIsValid == true){   ctx.fillStyle = "green";
+                    } else {    ctx.fillStyle = "red";  }
                 }
             }
             this.components[i].render(ctx, this.componentWidth, compSimulationData);
@@ -858,8 +723,7 @@ class CircuitUI
         this._renderButtons();
         this._renderPlots();
     }
-    _renderButtons()
-    {
+    _renderButtons(){
         const falseColor = "#DD4444";
         const falseColorHighlight = "#FF4444";
         const trueColor = "#44DD44";
@@ -867,8 +731,7 @@ class CircuitUI
         const disableColor = "#88888844";
 
         //Run/Stop button
-        if (this.run == true)
-        {
+        if (this.run == true){
             this.toggleSimulationRunButton.backgroundColor = trueColor;
             this.toggleSimulationRunButton.highlightColor = trueColorHighlight;
         } else {
@@ -879,8 +742,7 @@ class CircuitUI
 
 
         //Reset Simulation Button
-        if (this.editedCircuit == true)
-        {
+        if (this.editedCircuit == true){
             this.resetSimulationButton.backgroundColor = falseColor;
             this.resetSimulationButton.highlightColor = falseColorHighlight;
         } else {
@@ -890,10 +752,8 @@ class CircuitUI
         this.resetSimulationButton.render(this.ctx, this.mousePos);
 
         //Plot component button
-        if (this.selectedComponent != null)
-        {
-            if (this._componentIsPlotted(this.selectedComponent))
-            {
+        if (this.selectedComponent != null){
+            if (this._componentIsPlotted(this.selectedComponent)){
                 this.plotComponentButton.backgroundColor = falseColor;
                 this.plotComponentButton.highlightColor = falseColorHighlight;
                 this.plotComponentButton.text = "Remove Plot";
@@ -910,8 +770,7 @@ class CircuitUI
         this.plotComponentButton.render(this.ctx, this.mousePos);
 
     }
-    _renderPlots()
-    {
+    _renderPlots(){
         if (this.plots.length < 1) { return; }
         const paddingX = 20; //horizontal padding between each plot
         const paddingY = 20; //vertical padding from bottom of canvas
@@ -922,12 +781,10 @@ class CircuitUI
         const midY = startY + plotHeight/2; //midY is the middle of the plot, or the 0 line
 
         //for each plotted component
-        for (let i=0; i<this.plots.length; i++)
-        {
+        for (let i=0; i<this.plots.length; i++){
             const p = this.plots[i];
             const c = p.getComponent();
-            if (this.run == true) //if running the simulation, get component data from this.circuit object
-            {
+            if (this.run == true){ //if running the simulation, get component data from this.circuit object
                 const data = this.circuit.getComponentData(c.name);
                 if (data != null) { 
                     c.voltageData = data.voltageHistory;
@@ -949,15 +806,13 @@ class CircuitUI
             startX += plotWidth + paddingX;
         }
     }
-    resize() {
-        
+    resize() { 
         const bb = this.htmlCanvasElement.getBoundingClientRect();
         this.htmlCanvasElement.width = Math.round(bb.width);
         this.htmlCanvasElement.height = Math.round(bb.height);
         //this.ctx = this.htmlCanvasElement.getContext("2d");
     }
     __pointToLineSegmentDistance(p = new Point(), sp = new Point(), ep = new Point()) {
-
         const A = p.x - sp.x;
         const B = p.y - sp.y;
         const C = ep.x - sp.x;
@@ -971,15 +826,13 @@ class CircuitUI
       
         let xx, yy;
       
-        if (param < 0) {
+        if (param < 0){
           xx = sp.x;
           yy = sp.y;
-        }
-        else if (param > 1) {
+        }else if (param > 1){
           xx = ep.x;
           yy = ep.y;
-        }
-        else {
+        }else{
           xx = sp.x + param * C;
           yy = sp.y + param * D;
         }
@@ -989,14 +842,12 @@ class CircuitUI
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    _getComponentAndSegmentClicked()
-    {
+    _getComponentAndSegmentClicked(){
         let closestComp = null;
         let closestDist = this.selectDistance;
         let segment = "s"; //either s, e, or l, defining if we're close to the startPoint, endPoint, or line
 
-        for (let i=0; i<this.components.length; i++)
-        {
+        for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
             //console.log(this.mousePos)
             const distToLine = this.__pointToLineSegmentDistance(this.mousePos, c.startPoint, c.endPoint);
@@ -1005,15 +856,12 @@ class CircuitUI
 
             //console.log(distToLine);
 
-            if (distToLine < closestDist)
-            {
+            if (distToLine < closestDist){
                 closestComp = c;
                 closestDist = distToLine;
-                if (distToLine < distToStartPoint-this.selectDistance && distToLine < distToEndPoint-this.selectDistance)
-                {
+                if (distToLine < distToStartPoint-this.selectDistance && distToLine < distToEndPoint-this.selectDistance){
                     segment = "line";
-                } else if (distToStartPoint < distToEndPoint)
-                {
+                } else if (distToStartPoint < distToEndPoint){
                     segment = "startPoint";
                 } else {
                     segment = "endPoint";
@@ -1021,8 +869,7 @@ class CircuitUI
             }
         }
 
-        if (closestComp != null)
-        {
+        if (closestComp != null){
             //console.log(closestComp.name + " " + segment);
             return {component:closestComp, segment:segment};
         }
@@ -1031,43 +878,27 @@ class CircuitUI
             segment: null,
         }
     }
-    _getButtonAtPos(pos)
-    {
-        for (let i=0; i<this.buttons.length; i++)
-        {
-            if (this.buttons[i].pointIsOverButton(pos))
-            {
+    _getButtonAtPos(pos){
+        for (let i=0; i<this.buttons.length; i++){
+            if (this.buttons[i].pointIsOverButton(pos)){
                 return this.buttons[i];
             }
         }
         return null;
     }
-    _getPlotAtPos(pos)
-    {
-        for (let i=0; i<this.plots.length; i++)
-        {
-            if (this.plots[i].pointIsOverButton(pos))
-            {
-                return this.plots[i];
-            }
+    _getPlotAtPos(pos){
+        for (let i=0; i<this.plots.length; i++){
+            if (this.plots[i].pointIsOverButton(pos)){  return this.plots[i];   }
         }
         return null;
     }
 
-    _addComponent(c)
-    {
-        this.components.push(c);
-    }
-    _deleteComponent(component = null)
-    {
-        if (component == null)
-        {
-            component = this.selectedComponent;
-        }
-        for(let i=0; i<this.components.length; i++)
-        {
-            if (this.components[i] == component)
-            {
+    _addComponent(c){   this.components.push(c);    }
+
+    _deleteComponent(component = null){
+        if (component == null){ component = this.selectedComponent; }
+        for(let i=0; i<this.components.length; i++){
+            if (this.components[i] == component){
                 this.components.splice(i,1);
                 break;
             }
@@ -1075,44 +906,28 @@ class CircuitUI
         this._removePlot(component);
     }
 
-    _addPlot(component)
-    {
-        if (component == null)
-        {
-            component = this.selectedComponent;
-        }
-        if (component == null)
-        {
-            return;
-        }
+    _addPlot(component){
+        if (component == null){ component = this.selectedComponent;}
+        if (component == null){ return; }
         //if (component instanceof UIComponent)
-        if (this._removePlot(component) == false)
-        {
+        if (this._removePlot(component) == false){
             this.plots.push(new UIPlot(component));
         }
     }
-    _removePlot(component)
-    {
-        if (component == null)
-        {
-            component = this.selectedComponent;
-        }
-        for(let i=0; i<this.plots.length; i++)
-        {
-            if (this.plots[i].component == component)
-            {
+    _removePlot(component){
+        if (component == null){ component = this.selectedComponent; }
+
+        for(let i=0; i<this.plots.length; i++){
+            if (this.plots[i].component == component){
                 this.plots.splice(i,1);
                 return true;
             }
         }
         return false;
     }
-    _componentIsPlotted(component)
-    {
-        for (let i=0; i<this.plots.length; i++)
-        {
-            if (this.plots[i].getComponent() == component)
-            {
+    _componentIsPlotted(component){
+        for (let i=0; i<this.plots.length; i++){
+            if (this.plots[i].getComponent() == component){
                 return true;
             }
         }
@@ -1133,14 +948,12 @@ class CircuitUI
         let plotOver = null;
 
         //get data from event
-        if (event == null)
-        {
+        if (event == null){
             event = {type: 'unknown_event'};
             console.error("event listener was passed an event without a type!");
         }
 
-        switch (event.type) 
-        {
+        switch (event.type) {
             case 'mousedown':
                 newMousePos = new Point(event.offsetX, event.offsetY);
                 this.mousePosDelta = newMousePos.sub(this.mousePos);
@@ -1205,45 +1018,27 @@ class CircuitUI
         // finishingEditingComponentValue
 
         //console.log(this.userState);
-        if (event.type == "keydown" && keyPressed == "p")
-        {
-            console.log(this.getSaveText());
-        }
-
-        if (event.type == "keydown" && keyPressed == "enter")
-        {
-            //this.circuit = new Circuit( this._getCircuitText() );
-        }
-
-        if (event.type == "mousemove") //handle mouse cursor type (if over button or over component, change cursor style);
-        {
-            if (componentOver != null) { 
-                this.htmlCanvasElement.style.cursor="crosshair";
-            } else if (plotOver != null || buttonOver != null) {
-                this.htmlCanvasElement.style.cursor="pointer";
-            } else {
-                this.htmlCanvasElement.style.cursor="default";
-            }
+        if (event.type == "keydown" && keyPressed == "p"){  console.log(this.getSaveText());    }
+        if (event.type == "keydown" && keyPressed == "enter"){  /*this.circuit = new Circuit( this._getCircuitText() );*/ }
+        if (event.type == "mousemove"){ //handle mouse cursor type (if over button or over component, change cursor style);
+            if (componentOver != null) {    this.htmlCanvasElement.style.cursor="crosshair";
+            } else if (plotOver != null || buttonOver != null) {    this.htmlCanvasElement.style.cursor="pointer";
+            } else {    this.htmlCanvasElement.style.cursor="default";  }
         }
 
         document.getElementById("userStateDiv").innerText = " " + this.userState;
         document.getElementById("selectedCompDiv").innerText = " " + this.selectedComponent?.name;
 
-        if (this.userState == "idle")
-        {
-            if (event.type == 'keydown' && keyPressed == "escape") //deselection
-            {
+        if (this.userState == "idle"){
+            if (event.type == 'keydown' && keyPressed == "escape"){ //deselection
                 this.selectedComponent = null;
                 return;
             }
-            if ( event.type == "mousedown" && buttonOver != null) // a UIbutton was clicked
-            {
-                switch(buttonOver)           //plotComponentButtonClicked
-                {
+            if ( event.type == "mousedown" && buttonOver != null){ // a UIbutton was clicked
+                switch(buttonOver){           //plotComponentButtonClicked
                     case this.plotComponentButton: this._addPlot(this.selectedComponent); break;
                     case this.toggleSimulationRunButton:
-                        if (this.run == true)
-                        {
+                        if (this.run == true){
                             this.run = false;
                             this.toggleSimulationRunButton.text = "Run Simulation";
                         } else {
@@ -1255,75 +1050,58 @@ class CircuitUI
                 }
                 return;
             }
-            if (event.type == "mousedown" && plotOver != null) // a Plot was clicked
-            {
+            if (event.type == "mousedown" && plotOver != null){ // a Plot was clicked
                 this.selectedComponent = plotOver.getComponent();
                 return;
             }
-            if (event.type == "mousedown" && componentOver == null) //deselection of component
-            {
+            if (event.type == "mousedown" && componentOver == null){ //deselection of component
                 this.selectedComponent = null;
                 return;
             }
-            if (event.type == 'keydown' && (keyPressed == 'delete' || keyPressed == 'backspace') && this.selectedComponent != null) //delete component
-            {
+            if (event.type == 'keydown' && (keyPressed == 'delete' || keyPressed == 'backspace') && this.selectedComponent != null){ //delete component
                 this._deleteComponent(this.selectedComponent);
                 return;
             }
             if (event.type == 'keydown') { //potentially making new component (searches through componentShortcuts)
-                
-                for (let i=0; i<componentShortcuts.length; i++)
-                {
-                    if (componentShortcuts[i] == rawKeyPressed)
-                    {
+                for (let i=0; i<componentShortcuts.length; i++){
+                    if (componentShortcuts[i] == rawKeyPressed){
                         this.userState = "creatingComponent";
                         this.componentTypeToDraw = rawKeyPressed;
                     }
                 }
             }
-            if (event.type == "mousedown" && componentOver != null && this.pressedKeys.get("shift") == true) //plot component
-            {
+            if (event.type == "mousedown" && componentOver != null && this.pressedKeys.get("shift") == true){ //plot component
                 this._addPlot(componentOver);
                 return;
             }
-            if (event.type == "mousedown" && componentOver != null) //switch to moving component
-            {
+            if (event.type == "mousedown" && componentOver != null){ //switch to moving component
                 this.selectedComponent = componentOver;
                 this.selectedComponentSegment = componentOverSegment;
                 this.userState = "movingComponent";
                 this.movedSelectedComponent = false;
                 return;
             }
-            if (event.type == "dblclick" && componentOver != null) //dbl click means editingComponentValue
-            {
+            if (event.type == "dblclick" && componentOver != null){ //dbl click means editingComponentValue
                 this.selectedComponent = componentOver;
                 this.selectedComponentSegment = componentOverSegment;
                 this.userState = "editingComponentValue";
             }
         }
 
-        if (this.userState == "movingComponent")
-        {
-            if (this.mouseIsDown == false ||  keyPressed == "escape" || event.type == "mouseup")
-            {
-                if (this.movedSelectedComponent)
-                {
-                    this.editedCircuit = true;
-                }
+        if (this.userState == "movingComponent"){
+            if (this.mouseIsDown == false ||  keyPressed == "escape" || event.type == "mouseup"){
+                if (this.movedSelectedComponent){   this.editedCircuit = true;  }
                 this.movedSelectedComponent = false;
                 this.userState = "idle";
             }
             
             //This is used to check if we actually moved the component, or just clicked it. If we just clicked it, then we didn't edit the circuit, thus the circuit was not edited.
-            if (event.type == "mousemove")
-            {
+            if (event.type == "mousemove"){
                 this.movedSelectedComponent = true;
             }
-            if (this.selectedComponentSegment == "startPoint")
-            {
+            if (this.selectedComponentSegment == "startPoint"){
                 this.selectedComponent.startPoint = this.mousePos.copy();
-            } else if (this.selectedComponentSegment == "endPoint")
-            {
+            } else if (this.selectedComponentSegment == "endPoint"){
                 this.selectedComponent.endPoint = this.mousePos.copy();
             } else {
                 this.selectedComponent.startPoint.addi(this.mousePosDelta);
@@ -1331,16 +1109,12 @@ class CircuitUI
             }
         }
 
-        if (this.userState == "editingComponentValue")
-        {
-            if ( keyPressed == "escape" || event.type == "mousedown" || keyPressed == "enter")
-            {
+        if (this.userState == "editingComponentValue"){
+            if ( keyPressed == "escape" || event.type == "mousedown" || keyPressed == "enter"){
                 this.userState = "finishingEditingComponentValue";
             }
-            if (event.type == "keydown")
-            {
-                if (keyPressed == "backspace")
-                {
+            if (event.type == "keydown"){
+                if (keyPressed == "backspace"){
                     let len = this.selectedComponent.valueString.length;
                     this.selectedComponent.setValue( this.selectedComponent.valueString.slice(0, len-1) );
                 } else if (keyPressed.length < 2) {
@@ -1349,10 +1123,8 @@ class CircuitUI
             }
         }
 
-        if (this.userState == "finishingEditingComponentValue")
-        {
-            if (this.circuit != null)
-            {
+        if (this.userState == "finishingEditingComponentValue"){
+            if (this.circuit != null){
                 try {
                     this.circuit.setComponentValue(this.selectedComponent.name, this.selectedComponent.value);
                 } catch {
@@ -1363,10 +1135,8 @@ class CircuitUI
             return;
         }
 
-        if (this.userState == "creatingComponent")
-        {
-            if (event.type == 'mousedown')
-            {
+        if (this.userState == "creatingComponent"){
+            if (event.type == 'mousedown'){
                 this.selectedComponent = new UIComponent(this.componentTypeToDraw);
                 this._addComponent(this.selectedComponent);
                 this.selectedComponent.setStartPoint( this.mousePos.x, this.mousePos.y );
@@ -1376,61 +1146,45 @@ class CircuitUI
             }
         }
     }
-    _setEventListeners(selfObject)
-    {
+    _setEventListeners(selfObject){
         //mouse listeners
-        ['mousedown', 'mouseup', 'mousemove', 'mouseout', 'dblclick'].forEach(function(eventType)
-        {
+        ['mousedown', 'mouseup', 'mousemove', 'mouseout', 'dblclick'].forEach(function(eventType){
             selfObject.htmlCanvasElement.addEventListener(eventType, function(e) {
                 selfObject._eventListener(e);
             })
         });
 
         //keyboard listeners
-        ['keyup', 'keydown'].forEach(function(eventType)
-        {
+        ['keyup', 'keydown'].forEach(function(eventType){
             document.addEventListener(eventType, function(e) {
                 selfObject._eventListener(e);
             })
         });
 
         //window listener (resize)
-        window.addEventListener('resize', function(e)
-        {
+        window.addEventListener('resize', function(e){
             selfObject.resize(e);
         })
     }
 
-    loadFromSave(saveText = "")
-    {
-
+    loadFromSave(saveText = ""){
         saveText.replace(" ", "");
         const arr = saveText.split(";");
 
-        for (let i=0; i<arr.length; i++)
-        {
+        for (let i=0; i<arr.length; i++){
             const s = arr[i];
-            if (s.length < 4)
-            {
-                continue;
-            }
+            if (s.length < 4){  continue;   }
 
             const a = s.split(",");
             let c;
-            if (a.length == 6)
-            {
+            if (a.length == 6){
                 c = new UIComponent(a[0], new Point(a[1], a[2]), new Point(a[3], a[4]), a[5]);
-            } else if (a.length == 7)
-            {
+            } else if (a.length == 7){
                 c = new UIComponent(a[0], new Point(a[1], a[2]), new Point(a[3], a[4]), a[5], a[6]);
             }
 
-            if (c != null)
-            {
-                this._addComponent(c);
-            }
+            if (c != null){ this._addComponent(c);  }
         }
-
         this._resetSimulation();
     }
     getSaveText()
@@ -1442,8 +1196,7 @@ class CircuitUI
         }
         return s;
     }
-    _getCircuitText()
-    {
+    _getCircuitText(){
         //this function is used to convert the UI circuit into a text string the Circuit() class can understand and simulate.
         this.nodeMap = new Map(); //maps position on screen (point.getHashCode()) to node name
         this.nodes = [];
@@ -1451,47 +1204,37 @@ class CircuitUI
         let nodeOn = 0;
 
         //first, map all of the wire points to nodes.
-        for (let i=0; i<this.components.length; i++)
-        {
+        for (let i=0; i<this.components.length; i++){
             const c= this.components[i];
             if (!(c.type == "wire" || c.type == "w")) { continue; }
             
             let sn = nodeMap.get(c.startPoint.getHashCode());
             let en = nodeMap.get(c.endPoint.getHashCode());
-            if (sn == null && en == null) //case 1: both are null - get next node name and set both points to it in the map
-            {
+            if (sn == null && en == null){ //case 1: both are null - get next node name and set both points to it in the map
                 nodeMap.set(c.startPoint.getHashCode(), nodeOn);
                 nodeMap.set(c.endPoint.getHashCode(), nodeOn);
                 nodeOn += 1;
-            } else if (sn == null && en != null) //case 2 & 3: one is null: set null point to non-null point node.
-            {
+            } else if (sn == null && en != null){ //case 2 & 3: one is null: set null point to non-null point node.
                 nodeMap.set(c.startPoint.getHashCode(), en);
-            } else if (sn != null && en == null)
-            {
+            } else if (sn != null && en == null){
                 nodeMap.set(c.endPoint.getHashCode(), sn);
             } else {                //Case 4: both are not null - take the smallest node, and set all of the larger ones to it.
                 //both are not null;
-                if (sn == en)
-                {
+                if (sn == en){
                     //do nothing..?
                 } else {
                     const keysArray = Array.from( nodeMap.keys() );
-                    if (sn < en)
-                    {
+                    if (sn < en){
                         //convert all en to sn
-                        for (let k=0; k<keysArray.length; k++)
-                        {
-                            if (keysArray[k] == en)
-                            {
+                        for (let k=0; k<keysArray.length; k++){
+                            if (keysArray[k] == en){
                                 nodeMap.set(keysArray[k], sn);
                             }
                         }
                     } else {
                         //convert all sn to en
-                        for (let k=0; k<keysArray.length; k++)
-                        {
-                            if (keysArray[k] == sn)
-                            {
+                        for (let k=0; k<keysArray.length; k++){
+                            if (keysArray[k] == sn){
                                 nodeMap.set(keysArray[k], en);
                             }
                         }
@@ -1502,15 +1245,13 @@ class CircuitUI
         }
 
         //next, map all other component points to nodes.
-        for (let i=0; i<this.components.length; i++)
-        {
+        for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
             if (c.type == "w" || c.type == "wire") { continue; }
 
             //get sn name from map. if null, create new node. after, set c.startNodeName to the node value; repeat for endnode
             let sn = nodeMap.get(c.startPoint.getHashCode());
-            if (sn == null)
-            {
+            if (sn == null){
                 nodeMap.set(c.startPoint.getHashCode(), nodeOn);
                 nodeOn += 1;
             }
@@ -1518,8 +1259,7 @@ class CircuitUI
 
 
             let en = nodeMap.get(c.endPoint.getHashCode());
-            if (en == null)
-            {
+            if (en == null){
                 nodeMap.set(c.endPoint.getHashCode(), nodeOn);
                 nodeOn += 1;
             }
@@ -1529,8 +1269,7 @@ class CircuitUI
 
         //now, we have mapped all of the components to nodes.
         let s = ""; //format: type, name, node1Name, node2Name, value, ... 
-        for (let i=0; i<this.components.length; i++)
-        {
+        for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
             if (c.type == "w" || c.type == "wire") { continue; }
 
@@ -1539,8 +1278,7 @@ class CircuitUI
         console.log(s);
         return s;
     }
-    _resetSimulation()
-    {
+    _resetSimulation(){
         this.circuit = new Circuit(this._getCircuitText()); 
         this.editedCircuit = false;
     }
@@ -1558,31 +1296,14 @@ const c = new CircuitUI(htmlCanvasElement);
 c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;w,420,280,300,280,1;g,300,280,300,320,0;l,420,180,420,280,1m;r,420,180,500,180,1;c,500,180,500,280,1u;w,500,280,420,280,1;");
 
 
-function SimulationSpeedInputChange(e)
-{
+function SimulationSpeedInputChange(e){
     c.numCalculationsPerRender = Math.pow(Number(speedSlider.value),2);
     //console.log("Simulation Calulations per render: " + c.numCalculationsPerRender);
 }
 
 let interval = setInterval(update, 100);
 
-function update()
-{
-    c.render();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
+function update(){  c.render(); }
 
 
 /*

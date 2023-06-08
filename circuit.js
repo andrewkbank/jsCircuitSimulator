@@ -1,29 +1,18 @@
 
 
 
-function closeTo(num1, num2, threshold = 0.001)
-{
-    if (num1-threshold < num2 && num1+threshold > num2)
-    {
-        return true;
-    }
-    if (isNaN(num1) && isNaN(num2))
-    {
-        return true;
-    }
+function closeTo(num1, num2, threshold = 0.001){
+    if (num1-threshold < num2 && num1+threshold > num2){    return true;    }
+    if (isNaN(num1) && isNaN(num2)){    return true;    }
     return false;
 }
-function copy(array)
-{
+function copy(array){
     let newArray = [];
-    for (let i=0; i<array.length; i++)
-    {
+    for (let i=0; i<array.length; i++){
         newArray.push(array[i]);
     }
     return newArray;
 }
-
-
 
 class Node {
     constructor(name = 'any', number = 0) {
@@ -34,31 +23,25 @@ class Node {
         this.voltage = 0;
         this.currentIn = 0;
     }
-    toString()
-    {
+    toString(){
         let s = "Node - name: " + this.name + " number: " + this.number;
         s += "\n   strt.Comps: ";
-        for (let i=0; i<this.startComponents.length; i++)
-        {
+        for (let i=0; i<this.startComponents.length; i++){
             s += this.startComponents[i].name +", ";
         }
         s += "\n   end.Comps: ";
-        for (let i=0; i<this.endComponents.length; i++)
-        {
+        for (let i=0; i<this.endComponents.length; i++){
             s += this.endComponents[i].name +", ";
         }
         s += "\n   voltage:" + this.voltage;
-
         return s;
     }
 }
 class Component {
-    constructor(name, startNode, endNode)
-    {
+    constructor(name, startNode, endNode){
         this.name = name;
         this.startNode = startNode;
         this.endNode = endNode;
-
 
         this.voltage = NaN;
         this.current = NaN;
@@ -68,128 +51,110 @@ class Component {
 
         this.voltageHistory = [];
         this.currentHistory = [];
+        /*
         //this.voltage = voltage;
         //this.current = current;
         //this.resistance = resistance;
 
         //if (isNaN(this.resistance)) { this.resistance = 0; }
+        */
     }
     setValue(value) {
         console.error("this compoinent.setValue not implemented");
     }
-    getVoltage()
-    {
-        return this.voltage;
-    }
-    getCurrent()
-    {
-        return this.current;
-    }
+    getVoltage(){   return this.voltage;    }
+    getCurrent(){   return this.current;    }
 }
 class Resistor extends Component {
-    constructor(name, startNode, endNode, resistance=1000)
-    {
+    constructor(name, startNode, endNode, resistance=1000){
         super(name, startNode, endNode);
         this.resistance = resistance;
     }
-    setValue(value)
-    {
+    setValue(value){
         if (isNaN(value)) { return; }
         this.resistance = value;
     }
 }
 class CurrentSource extends Component {
-    constructor(name, startNode, endNode, current)
-    {
+    constructor(name, startNode, endNode, current){
         super(name, startNode,endNode);
         this.current = current;
     }
-    setValue(value)
-    {
+    setValue(value){
         if (isNaN(value)) { return; }
         this.current = value;
     }
 }
 class Inductor extends CurrentSource {
-    constructor(name, startNode, endNode, inductance)
-    {
+    constructor(name, startNode, endNode, inductance){
         super(name, startNode,endNode);
         this.inductance = inductance;
         this.current = 0;
     }
-    setValue(value)
-    {
+    setValue(value){
         if (isNaN(value)) { return; }
         this.inductance = value;
     }
 }
 
 class VoltageSource extends Component {
-    constructor(name, startNode, endNode, voltage=10)
-    {
+    constructor(name, startNode, endNode, voltage=10){
         super(name, startNode, endNode);
         this.voltage = voltage;
     }
-    setValue(value)
-    {
+    setValue(value){
         if (isNaN(value)) { return; }
         this.voltage = value;
     }
 }
-class Voltage2n extends VoltageSource {
 
+//why not just use VoltageSource instead of Voltage2n and Voltage1n?
+class Voltage2n extends VoltageSource {
+    
 }
 class Voltage1n extends VoltageSource {
 
 }
 class Capacitor extends Voltage2n {
-    constructor(name, startNode, endNode, capacitance)
-    {
+    constructor(name, startNode, endNode, capacitance){
         super(name, startNode, endNode);
         this.capacitance = capacitance;
         this.voltage = 0;
     }
-    setValue(value)
-    {
+    setValue(value){
         if (isNaN(value)) { return; }
         this.capacitance = value;
     }
 }
 
 class Diode extends Resistor {
-    constructor(name, startNode, endNode, thresholdVoltage=10)
-    {
+    constructor(name, startNode, endNode, thresholdVoltage=10){
         super(name, startNode, endNode);
         this.thresholdVoltage = thresholdVoltage;
         this.resistance = 1000000000;
         this.avgCurrent = 0;
         this.avgVoltage = 0;
     }
-    setValue(value)
-    {
+    setValue(value){
         if (isNaN(value)) { return; }
         this.thresholdVoltage = thresholdVoltage;
     }
-    getVoltage()
-    {
+    getVoltage(){
         return this.avgVoltage;
     }
-    getCurrent()
-    {
+    getCurrent(){
         return this.avgCurrent;
     }
 }
 
 
-function updateMatrix(matA, matX, matB)
-{
-    for (let i=0; i<matX.length; i++)
-    {
+//I'm not really sure what type of update this function does... -Andrew
+function updateMatrix(matA, matX, matB){
+    for (let i=0; i<matX.length; i++){
         const nodeVal = matX[i];
         if (isNaN(nodeVal)) { continue; }
 
-        for (let r=0; r<matB.length; r++)
-        {
+        for (let r=0; r<matB.length; r++){
             //clear row (matA)
             matA[i*matB.length + r] = 0;
 
@@ -200,30 +165,24 @@ function updateMatrix(matA, matX, matB)
         matB[i] = 0; //clear row (matB)
     }
 }
-function printMatrix(mat, rowLength=3)
-{
+function printMatrix(mat, rowLength=3){
     let s = "";
-    for (let i=0; i<mat.length/rowLength; i++)
-    {
-        for (let j=0; j<rowLength; j++)
-        {
+    for (let i=0; i<mat.length/rowLength; i++){
+        for (let j=0; j<rowLength; j++){
             s += mat[i*rowLength + j].toFixed(3) + "    ";
         }
         s += "\n";
     }
     console.log(s);
 }
-function Gaussian(matA, matX, matB, rowLength=3)
-{
+//Gaussian Elimination
+function Gaussian(matA, matX, matB, rowLength=3){
     let numRows = matA.length/rowLength;
     //console.log("numRows: " + numRows + "  rowLen: "+rowLength );
  
-
-    for (let c=0; c<rowLength; c++)
-    {
-        //console.log("Iuter Loop:  c:" + c+"  numRows-c-1:"+(numRows-c-1));
-        for (let r=numRows-1; r > c; r-=1)
-        {
+    for (let c=0; c<rowLength; c++){
+        //console.log("Inter Loop:  c:" + c+"  numRows-c-1:"+(numRows-c-1));
+        for (let r=numRows-1; r > c; r-=1){
             //console.log("r:" + r +"  c: " + c);
             const v1 = matA[r*rowLength + c];
             if (v1 == 0) { 
@@ -233,12 +192,10 @@ function Gaussian(matA, matX, matB, rowLength=3)
 
             //Find r2, the next row with a value in column c above row r
             let r2 = r-1;
-            while ( r2 >= 0 && (matA[r2*rowLength + c] == 0 || isNaN(matA[r2*rowLength + c])))
-            {
+            while ( r2 >= 0 && (matA[r2*rowLength + c] == 0 || isNaN(matA[r2*rowLength + c]))){
                 r2 -= 1;
             }
-            if ((matA[r2*rowLength + c] == 0 || isNaN(matA[r2*rowLength + c])))
-            {
+            if ((matA[r2*rowLength + c] == 0 || isNaN(matA[r2*rowLength + c]))){
                 //console.log("continuing2");
                 continue;
             }
@@ -250,8 +207,7 @@ function Gaussian(matA, matX, matB, rowLength=3)
             //console.log("r: " + r + "  c: " + c + "  r2: " +r2 + "  v1:" + v1 + " v2:"+v2 + "  mp: " + multiplier);
 
             //Merge rows together (r2 into r)
-            for (let c2=c; c2<rowLength; c2++)
-            {
+            for (let c2=c; c2<rowLength; c2++){
                 matA[r*rowLength + c2] += matA[r2*rowLength + c2]*multiplier;
             }
             matB[r] += matB[r2]*multiplier;
@@ -259,25 +215,21 @@ function Gaussian(matA, matX, matB, rowLength=3)
         }
     }
 
-
-
-    for (let c=numRows-1; c >=0; c-=1)
-    {
+    for (let c=numRows-1; c >=0; c-=1){
         if (matA[c*numRows + c] == 0) { continue; }
         matX[c] = matB[c]/matA[c*numRows + c];
 
-        for (let r=0; r<c; r++)
-        {
+        for (let r=0; r<c; r++){
             matB[r] -= matA[r*numRows + c]*matX[c];
             matA[c*numRows + r] = 0;
         }
         matB[c] = 0;
     }
-
-
+    /*
     //printMatrix(matA, rowLength);
     //printMatrix(matX, 1);
     //printMatrix(matB, 1);
+    */
 }
 
 
@@ -295,10 +247,8 @@ type acceptible values: r, resistor,
                         cs, currentSource,
 
 */
-class Circuit
-{
-    constructor(circuitString = "", timeStep = 0.000000001)
-    {
+class Circuit{
+    constructor(circuitString = "", timeStep = 0.000000001){
         this.nodes;         //array of node objects
         this.nodeMap;       //Map to get node by Node Name  (note: not Number)   //key = nodeName  value = nodeObject
         this.components;    // = components;//circ1.components;
@@ -319,7 +269,6 @@ class Circuit
         //this._MapComponentsAndNodes();
     }
     _LoadFromString(string) {
-
         this.nodes = [];
         this.components = [];
         this.nodeMap = new Map();          //nodeMap allows for us to quickly search for nodes by name;
@@ -343,12 +292,10 @@ class Circuit
             let node2Name = list[i+3];
             let value1 =    list[i+4];
             //let value2 =    list[i+5]; 
-
             ////////////////////////////////////////////////////////////////////////////////////////
             //get or create the nodes
             let node1 = this.nodeMap.get(node1Name);
-            if (node1 == null)
-            {
+            if (node1 == null){
                 node1 = new Node(node1Name, nodeOn);
                 this.nodes.push(node1);
                 this.nodeMap.set(node1Name, node1);
@@ -356,8 +303,7 @@ class Circuit
             }
 
             let node2 = this.nodeMap.get(node2Name);
-            if (node2 == null)
-            {
+            if (node2 == null){
                 node2 = new Node(node2Name, nodeOn);
                 this.nodes.push(node2);
                 this.nodeMap.set(node2Name, node2);
@@ -367,8 +313,7 @@ class Circuit
             //create the component
             let comp;
             //console.log("Creating component: type:" + type + " name:" + name + " n1:" + node1Name + " n2:" + node2Name + " value1:" +value1);
-            switch (type)
-            {
+            switch (type){
                 case 'r':
                 case 'resistor': comp = new Resistor(name, node1, node2, Number(value1)); break;
                 case 'c':
@@ -378,7 +323,7 @@ class Circuit
                 case 'v1n':
                 case 'voltage1n':
                 case 'V':
-                case 'g': comp = new Voltage1n(name, node1, node2, Number(value1)); break;
+                case 'g': comp = new Voltage1n(name, node1, node2, Number(value1)); break;  //why tf is g=Voltage1n?
                 case 'v2n':
                 case 'voltage2n':
                 case 'v': comp = new Voltage2n(name, node1, node2, Number(value1)); break;
@@ -396,19 +341,14 @@ class Circuit
                 this.components.push(comp);
                 this.componentMap.set(comp.name, comp);
                 node1.startComponents.push(comp);
-
-                if (!(comp instanceof Voltage1n))
-                {
-                    node2.endComponents.push(comp);
-                }
+                if (!(comp instanceof Voltage1n)){  node2.endComponents.push(comp); }
             }
         }
-
-
         this._CreateComponentGroupings();
     }
-    _MapComponentsAndNodes()
-    {
+    //this function is never used
+    /*
+    _MapComponentsAndNodes(){
         return;
         //INIT//////////////////////////////////
         //load nodes into nodeDict, where key=name, value=node obj
@@ -459,85 +399,46 @@ class Circuit
             }
         }
     }
-    _CreateComponentGroupings()
-    {
+    */
+    _CreateComponentGroupings(){
         this.resistiveComponents = [];
         this.currentComponents = [];
         this.voltage1nComponents = [];
         this.voltage2nComponents = [];
         this.varyingComponents = [];
 
-        for (let i=0; i<this.components.length; i++)
-        {
+        for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
-            if (c instanceof Resistor)
-            {
-                this.resistiveComponents.push(c);
-            }
-
-            if (c instanceof Voltage1n)
-            {
-                this.voltage1nComponents.push(c);
-            }
-
-            if (c instanceof Voltage2n)
-            {
-                this.voltage2nComponents.push(c);
-            }
-
-            if (c instanceof Capacitor)
-            {
-                this.varyingComponents.push(c);
-            }
-
-            if (c instanceof CurrentSource)
-            {
-                this.currentComponents.push(c);
-            }
-            
-            if (c instanceof Inductor)
-            {
-                this.varyingComponents.push(c);
-            }
-
-            if (c instanceof Diode)
-            {
-                this.varyingComponents.push(c);
-            }
+            if (c instanceof Resistor){ this.resistiveComponents.push(c);   }
+            if (c instanceof Voltage1n){    this.voltage1nComponents.push(c);   }
+            if (c instanceof Voltage2n){    this.voltage2nComponents.push(c);   }
+            if (c instanceof Capacitor){    this.varyingComponents.push(c); }
+            if (c instanceof CurrentSource){    this.currentComponents.push(c); }
+            if (c instanceof Inductor){ this.varyingComponents.push(c); }
+            if (c instanceof Diode){    this.varyingComponents.push(c); }
         }
     }
-    Calculate(numCycles = 1, debugMode = false)
-    {
-        if (debugMode)
-        {
-            return this._CalculateNodeVoltages();
-        }
+    Calculate(numCycles = 1, debugMode = false){
+        if (debugMode){ return this._CalculateNodeVoltages();   }
 
-        for (let i=0; i<numCycles; i++)
-        {
+        for (let i=0; i<numCycles; i++){
             this.timeSinceStart += this.timeStep;
             this._CalculateNodeVoltages();
-            if (this._CalculateCurrents() == false)
-            {
-                break;
-            }
+            if (this._CalculateCurrents() == false){    break;  }
             this._CalculateVoltages();
             this._UpdateDynamicComponents();
             this._SaveHistory();
         }
     }
-    _CalculateNodeVoltages() 
-    {
+    _CalculateNodeVoltages(){
         const components = this.components;
         const nodes = this.nodes;
 
         //RESET//////////////////////////////////
         //Reset all currents and voltages in components 
-        for (let i=0; i<components.length; i++)
-        {
+        for (let i=0; i<components.length; i++){
             const c = components[i];
-            if (c instanceof VoltageSource)
-            {
+            if (c instanceof VoltageSource){
                 c.current = NaN;
             } else if (c instanceof CurrentSource){
                 c.voltage = NaN;
@@ -547,17 +448,14 @@ class Circuit
             }
         }
 
-
         //CALCULATE//////////////////////////////////
         //Create matrices
         const matA = []; //creating matrix. form: row#*rowLength + column#,   rowLength = nodes.length,   num rows = nodes.length + numVoltageSources
         const matX = [];
         const matB = [];
         const rowLength = nodes.length;
-        for (let i=0; i<rowLength; i++)
-        {
-            for (let j=0; j<rowLength; j++)
-            {
+        for (let i=0; i<rowLength; i++){
+            for (let j=0; j<rowLength; j++){
                 matA.push(0);
             }
             matB.push(0);
@@ -565,8 +463,7 @@ class Circuit
         }
 
         //Load matrices (matA) with resistive loads
-        for (let i=0; i<this.resistiveComponents.length; i++)
-        {
+        for (let i=0; i<this.resistiveComponents.length; i++){
             const c = this.resistiveComponents[i];
             const sn = c.startNode.number;
             const en = c.endNode.number;
@@ -591,13 +488,11 @@ class Circuit
 
         //APPLYING VOLTAGES///////////////////////////////
         //Apply Voltage1n components (known node voltages) to the matrix
-        for (let i=0; i<this.voltage1nComponents.length; i++)
-        {
+        for (let i=0; i<this.voltage1nComponents.length; i++){
             const c = this.voltage1nComponents[i];
             matX[c.startNode.number] = c.voltage;
         }
-        if (this.voltage1nComponents.length == 0 && this.voltage2nComponents.length > 0)
-        {
+        if (this.voltage1nComponents.length == 0 && this.voltage2nComponents.length > 0){
             const c = this.voltage2nComponents[0];
             matX[c.startNode.number] = -c.voltage/2;
             matX[c.endNode.number] = c.voltage/2;
@@ -606,32 +501,28 @@ class Circuit
 
         //Apply Voltage2n components (known voltages between nodes) to the matrix
         //2 Cases: Case 1: if one node from the Voltage2n component is already known, then we know the other node value
-        //         Case 2: We do not know any voltages, but we can take the startNode row and add it to the endNode row. Then, in the startNode row we add a new equation showing the relationship between startNode and endNode
+        //         Case 2: We do not know any voltages, but we can take the startNode row and add it to the endNode row. 
+        //                 Then, in the startNode row we add a new equation showing the relationship between startNode and endNode
         const intoMap = new Map(); //see inside for use info
-        for (let i=0; i<this.voltage2nComponents.length; i++)
-        {
+        for (let i=0; i<this.voltage2nComponents.length; i++){
             const c = this.voltage2nComponents[i];
             const sn = c.startNode.number;
             let en = c.endNode.number;
 
             //if the start node is not NaN (already known), just fill in end node and clear the row
-            if (!isNaN(matX[sn]) && isNaN(matX[en]))
-            {
+            if (!isNaN(matX[sn]) && isNaN(matX[en])){
                 matX[en] = matX[sn] + c.voltage;
                 updateMatrix(matA, matX, matB, en);
                 i = -1;//restart - might simplify our life
-            } else if (!isNaN(matX[en]) && isNaN(matX[sn])) //if the end node is not NaN
-            {
+            } else if (!isNaN(matX[en]) && isNaN(matX[sn])){ //if the end node is not NaN
                 matX[sn] = matX[en] - c.voltage;
                 updateMatrix(matA, matX, matB, sn);
                 i = -1; //restart - might simplify our life
             } else if (isNaN(matX[en]) && isNaN(matX[sn])){ //if both nodes are NaN...
-
                 //Check to see if en was the sn for a difference Voltage2n. if it was, then ret will not be null.
                 const ret = intoMap.get(en);
                 let v = c.voltage;
-                if (ret != null)
-                {
+                if (ret != null){
                     en = ret.en;
                     v += ret.v;
                 }
@@ -641,8 +532,7 @@ class Circuit
                 intoMap.set(sn, {en:en, v:v});
 
                 //combine row sn into row en
-                for (let col=0; col<rowLength; col++)
-                {
+                for (let col=0; col<rowLength; col++){
                     matA[en*rowLength + col] += matA[sn*rowLength + col];
                     matA[sn*rowLength + col] = 0;
                 }
@@ -654,32 +544,24 @@ class Circuit
             }
         }
 
-
         //GAUSSIAN ELIMINATION//////////////////////////////
         Gaussian(matA, matX, matB, rowLength);
-        for (let i=0; i<nodes.length; i++)
-        {
+        for (let i=0; i<nodes.length; i++){
             nodes[i].voltage = matX[i];
         }
         //printMatrix(matX, 1);
         return matX;
     }
     _CalculateCurrents() {
-        //console.error("Circuit._CalculateCurrents() not implemented")
-        
         //Clearing currentIn for nodes and .current for all non-current dependent components
-        for (let i=0; i<this.nodes.length; i++)
-        {
+        for (let i=0; i<this.nodes.length; i++){
             this.nodes[i].currentIn = 0;
         }
-        for (let i=0; i<this.components.length; i++)
-        {
+        for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
-            if (!(c instanceof CurrentSource))
-            {
+            if (!(c instanceof CurrentSource)){
                 c.current = NaN;
-                if (c instanceof Resistor)
-                {
+                if (c instanceof Resistor){
                     c.current = (c.startNode.voltage - c.endNode.voltage)/c.resistance;
                     c.startNode.currentIn -= c.current;
                     c.endNode.currentIn += c.current;
@@ -692,14 +574,12 @@ class Circuit
         let foundUnsolvableNode = true; //this variable stores if we have a node left with TWO unknown currents. if so, keep looping.
         let loopNum = 0;
         const maxNumLoops = 20;
-        while (foundUnsolvableNode == true && loopNum < maxNumLoops)
-        {
+        //const maxNumLoops=this.nodes.length;
+        while (foundUnsolvableNode == true && loopNum < maxNumLoops){
             loopNum += 1;
-            foundUnsolvableNode = false;
 
             //for each node, check if their's 1 component with an unknown current.
-            for (let k=0; k<this.nodes.length; k++)
-            {
+            for (let k=0; k<this.nodes.length; k++){
                 const n = this.nodes[k];
 
                 let numUnknownComponents = 0;
@@ -707,40 +587,28 @@ class Circuit
                 let unknownComponent = null;
                 let tempComp = null;
                 //count number of unknown components in startComponents AND endComponents
-                for (let i=0; i<n.startComponents.length; i++)
-                {
+                for (let i=0; i<n.startComponents.length; i++){
                     tempComp = n.startComponents[i];
-                    if (isNaN(tempComp.current))
-                    {
+                    if (isNaN(tempComp.current)){
                         unknownComponent = tempComp;
                         unknownComponentStartsAtCurrentNode = true;
                         numUnknownComponents += 1;
-                        if (numUnknownComponents > 1)
-                        {
-                            break;
-                        }
+                        if (numUnknownComponents > 1){  break;  }
                     }
                 }
                 if (numUnknownComponents > 1) { foundUnsolvableNode = true; continue;}
-                for (let i=0; i<n.endComponents.length; i++)
-                {
+                for (let i=0; i<n.endComponents.length; i++){
                     tempComp = n.endComponents[i];
-                    if (isNaN(tempComp.current))
-                    {
+                    if (isNaN(tempComp.current)){
                         unknownComponent = tempComp;
                         unknownComponentStartsAtCurrentNode = false;
                         numUnknownComponents += 1;
-                        if (numUnknownComponents > 1)
-                        {
-                            break;
-                        }
+                        if (numUnknownComponents > 1){  break;  }
                     }
                 }
-                if (numUnknownComponents == 1) //if there's only 1 unknown current...
-                {
+                if (numUnknownComponents == 1){ //if there's only 1 unknown current...
                     //console.log("n: " + n.name + "  c: " + unknownComponent.name);
-                    if (unknownComponentStartsAtCurrentNode)
-                    {
+                    if (unknownComponentStartsAtCurrentNode){
                         unknownComponent.current = n.currentIn;
                         unknownComponent.endNode.currentIn -= n.currentIn;
                     } else {
@@ -751,16 +619,11 @@ class Circuit
                 }
             }
         }
-
-
-        if (loopNum == maxNumLoops)
-        {
+        if (loopNum == maxNumLoops){
             console.log(this.nodes);
             console.error("Circuit._CalculateCurrents(): Error - Looping to "+maxNumLoops+"... shouldn't ever loop this much.");
             return false;
         }
-
-
         /*
         let s = "";
         for (let i=0; i<this.components.length; i++)
@@ -769,16 +632,12 @@ class Circuit
             s += "name: "+c.name + "   current: "+c.current+"\n";
         }
         console.log(s);*/
-
     }
     _CalculateVoltages() {
-
         //for each component
-        for (let i=0; i<this.components.length; i++)
-        {
+        for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
-            if (c instanceof VoltageSource)
-            {
+            if (c instanceof VoltageSource){
                 continue;
             }
             c.voltage = c.startNode.voltage - c.endNode.voltage;
@@ -786,22 +645,11 @@ class Circuit
     }
     _UpdateDynamicComponents() {
 
-        for (let i=0; i<this.varyingComponents.length; i++)
-        {
+        for (let i=0; i<this.varyingComponents.length; i++){
             const c = this.varyingComponents[i];
-            if (c instanceof Capacitor)
-            {
-                c.voltage -= this.timeStep * c.current/c.capacitance;
-            }
-
-            if (c instanceof Inductor)
-            {
-                c.current -= this.timeStep * c.voltage/c.inductance;
-                //console.log(c.current);
-            }
-
-            if (c instanceof Diode)
-            {
+            if (c instanceof Capacitor){    c.voltage -= this.timeStep * c.current/c.capacitance;   }
+            if (c instanceof Inductor){ c.current -= this.timeStep * c.voltage/c.inductance;    }
+            if (c instanceof Diode){    //I'm not really sure how diodes work, but some of this seems weird... -Andrew
                 //curve: 
                 const I_0 = 0.0000000000001;
                 const v_t = 0.026;
@@ -811,12 +659,8 @@ class Circuit
                 //  c.wantedCurrent = c.voltage / c.newResistance;
                 // c.resistance = Math.max(0.01, c.voltage/wantedCurrent);
 
-                if (c.current > wantedCurrent && c.resistance < 1000000000)
-                {
-                    c.resistance *= 1.01;
-                } else if (c.resistance > 1) { 
-                    c.resistance *= 0.987;
-                }
+                if (c.current > wantedCurrent && c.resistance < 1000000000){    c.resistance *= 1.01;
+                } else if (c.resistance > 1) { c.resistance *= 0.987;   }
                 c.avgVoltage = c.avgVoltage * 0.9 + c.voltage*0.1;
                 c.avgCurrent = c.avgCurrent * 0.9 + c.current*0.1;
             }  
@@ -825,48 +669,27 @@ class Circuit
     _SaveHistory() {
         //we only want to save data every 1uS
         let val = this.timeSinceStart*1000000
-        if (closeTo(val, Math.round(val),this.timeStep*100000) == false)
-        {
-            return;
-        }
-
-        for (let i=0; i<this.components.length; i++)
-        {
+        if (closeTo(val, Math.round(val),this.timeStep*100000) == false){   return; }
+        for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
             c.voltageHistory.push(c.getVoltage());
             c.currentHistory.push(c.getCurrent());
         }
     }
 
-    getComponentVoltage(componentName)
-    {
+    getComponentVoltage(componentName){
         const comp = this.componentMap.get(componentName);
-        if (comp != null)
-        {
-            return comp.getVoltage();
-        }
+        if (comp != null){  return comp.getVoltage();   }
     }
-    getNodeVoltage(nodeName)
-    {
-        return this.nodeMap.get(nodeName)?.voltage
-    }
-    getComponentCurrent(componentName)
-    {
+    getNodeVoltage(nodeName){   return this.nodeMap.get(nodeName)?.voltage  }
+    getComponentCurrent(componentName){
         const comp = this.componentMap.get(componentName);
-        if (comp != null)
-        {
-            return comp.getCurrent();
-        }
+        if (comp != null){  return comp.getCurrent();   }
     }
-    getComponentValue(componentName, valueType="")
-    {
+    getComponentValue(componentName, valueType=""){
         const comp = this.componentMap.get(componentName);
-        if (comp == null)
-        {
-            return null;
-        }
-        switch (valueType.toLowerCase())
-        {
+        if (comp == null){  return null;    }
+        switch (valueType.toLowerCase()){
             case "voltage": return comp.getVoltage();
             case "current": return comp.getCurrent();
             case "resistance": return comp.resistance;
@@ -874,11 +697,9 @@ class Circuit
             case "capacitance": return comp.capacitance;
         }
     }
-    getComponentData(componentName)
-    {
+    getComponentData(componentName){
         const comp = this.componentMap.get(componentName);
-        if (comp == null)
-        {
+        if (comp == null){
             return {
                 voltage: 0, 
                 current: 0,
@@ -904,22 +725,18 @@ class Circuit
         };
     }
     setComponentValue(componentName, value) {
-        for (let i=0; i<this.components.length; i++) 
-        {
+        for (let i=0; i<this.components.length; i++) {
             const c = this.components[i];
-            if (c.name == componentName)
-            {
+            if (c.name == componentName){
                 c.setValue(value);
                 return;
             }
         }
     }
-    getCurrentTime()
-    {
+    getCurrentTime(){
         return this.timeSinceStart;
     }
-    getVoltageData()
-    {
+    getVoltageData(){
         console.error("Circuit.getVoltageData() not implemented.")
         this.nodeMap;        //key = nodeName  value = nodeObject
            
@@ -933,6 +750,7 @@ class Circuit
 
 //OLD UNUSED FUNCTIONS////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
+/*
 function Calculate_OLD_AND_UNUSED(nodes, components) {
 
     //INIT//////////////////////////////////
@@ -1143,11 +961,12 @@ function Calculate_OLD_AND_UNUSED(nodes, components) {
     //printMatrix(matA, rowLength);
     //printMatrix(matB, 1);
     Gaussian(matA, matX, matB, rowLength);
-    /*for (let i=0; i<nodes.length; i++)
+    for (let i=0; i<nodes.length; i++)
     {
         nodes[i].voltage = matX[i];
-    }*/
+    }
     printMatrix(matX, 1);
     return matX;
     ///console.log(matX);
 }
+*/
