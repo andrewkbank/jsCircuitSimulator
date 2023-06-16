@@ -122,18 +122,18 @@ function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSi
     ctx.rotate(rotAngle);
     const sVoltage = compSimulationData.startNodeVoltage;
     const eVoltage = compSimulationData.endNodeVoltage;
-    const avgVoltage = (sVoltage + eVoltage)/2;
+    const voltageAcross = sVoltage - eVoltage;
     //console.log(sVoltage, eVoltage, avgVoltage, styleFromVoltage(sVoltage), styleFromVoltage(eVoltage));
 
     ctx.beginPath();
-    ctx.strokeStyle = styleFromVoltage(sVoltage);
+    //ctx.strokeStyle = styleFromVoltage(sVoltage);
     ctx.moveTo(-length/2, 0);
     ctx.lineTo(-componentWidth, 0); //straight part
     ctx.stroke();
 
     const height = componentWidth*0.5;
     ctx.beginPath();
-    ctx.strokeStyle = styleFromVoltage(avgVoltage);
+    //ctx.strokeStyle = styleFromVoltage(voltageAcross);
     ctx.moveTo( -componentWidth, 0);//now squiggles
     ctx.lineTo( -componentWidth*0.75,  height);
     ctx.lineTo( -componentWidth*0.25, -height);
@@ -143,11 +143,14 @@ function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSi
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.strokeStyle = styleFromVoltage(eVoltage);
+    //ctx.strokeStyle = styleFromVoltage(eVoltage);
     ctx.moveTo(       componentWidth,       0);
     ctx.lineTo(length/2, 0); //other straight part
     ctx.stroke();
 
+    //Displays voltage across the resistor
+    ctx.fillText(voltageAcross.toFixed(3)+" V",0,height*3);
+    //Displays the resistance
     ctx.fillText(value, 0,-height*1.2  );
     ctx.restore();
 
@@ -176,7 +179,7 @@ function renderCapacitor(ctx, componentWidth, startPoint, endPoint, value, compS
     ctx.rotate(rotAngle);
 
     ctx.beginPath();
-    ctx.strokeStyle = styleFromVoltage(sVoltage);
+    //ctx.strokeStyle = styleFromVoltage(sVoltage);
     ctx.fillStyle = ctx.strokeStyle;
     //ctx.fillRect(startPoint.x-w, startPoint.y-w, 2*w,2*w)
     ctx.moveTo(-length/2, 0);
@@ -186,7 +189,7 @@ function renderCapacitor(ctx, componentWidth, startPoint, endPoint, value, compS
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.strokeStyle = styleFromVoltage(eVoltage);
+    //ctx.strokeStyle = styleFromVoltage(eVoltage);
     ctx.moveTo(width, componentWidth); 
     ctx.lineTo(width, -componentWidth); //second side
     ctx.moveTo(width, 0);
@@ -314,18 +317,6 @@ function renderDiode(ctx, componentWidth, startPoint, endPoint, value){
     const length = Math.sqrt( Math.pow(endPoint.x-startPoint.x, 2) + Math.pow(endPoint.y-startPoint.y,2) );
 
     let rotAngle = angle;                
-     
-    /*
-    if (rotAngle < 0)
-    {
-        rotAngle += Math.PI*2;
-    }
-    if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2)
-    {
-        rotAngle = angle;
-    } else {
-        rotAngle = angle+Math.PI;
-    }*/
     
     ctx.beginPath();
 
@@ -437,6 +428,7 @@ class UIComponent{
                 validCharIndex = i;
                 break;
             }
+            index=this.valueString.length   ;
         }
         /*
         while (index < this.valueString.length && index < 100){
@@ -622,7 +614,7 @@ class CircuitUI{
         this.defaultStrokeWidth = 2;
         this.defaultFont = '15px sans-serif';
         this.componentWidth = 15;
-        this.showNodeVoltages = false;
+        this.showNodeVoltages = true;
 
         //Plot variables
         this.plots = [];
@@ -702,11 +694,9 @@ class CircuitUI{
             this.components[i].render(ctx, this.componentWidth, compSimulationData);
         }
 
-        /*if (this.showNodeVoltages)
-        {
+        if (this.showNodeVoltages){
             const keysArray = Array.from( this.nodeMap.keys() );
-            for (let i=0; i<keysArray.length; i++)
-            {
+            for (let i=0; i<keysArray.length; i++){
                 const key = keysArray[i];
                 const name = this.nodeMap.get(key);
                 const point = new Point().fromHashCode(key);
@@ -718,7 +708,7 @@ class CircuitUI{
                 ctx.fillText(voltage.toPrecision(3), point.x+5, point.y-5,);
                 ctx.closePath();
             }
-        }*/
+        }
 
         this._renderButtons();
         this._renderPlots();
@@ -1187,8 +1177,7 @@ class CircuitUI{
         }
         this._resetSimulation();
     }
-    getSaveText()
-    {
+    getSaveText(){
         let s = "";
         for (let i=0; i<this.components.length; i++)
         {
@@ -1275,7 +1264,7 @@ class CircuitUI{
 
             s += c.type+","+c.name+","+c.startNodeName+","+c.endNodeName+","+c.value+",";
         }
-        console.log(s);
+        //console.log(s);
         return s;
     }
     _resetSimulation(){
@@ -1292,8 +1281,8 @@ const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
 const c = new CircuitUI(htmlCanvasElement);
 
-//c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;r,420,180,420,280,1k;w,420,280,300,280,1;g,300,280,300,320,0;");
-c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;w,420,280,300,280,1;g,300,280,300,320,0;l,420,180,420,280,1m;r,420,180,500,180,1;c,500,180,500,280,1u;w,500,280,420,280,1;");
+c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;r,420,180,420,280,1k;w,420,280,300,280,1;g,300,280,300,320,0;");
+//c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;w,420,280,300,280,1;g,300,280,300,320,0;l,420,180,420,280,1m;r,420,180,500,180,1;c,500,180,500,280,1u;w,500,280,420,280,1;");
 
 
 function SimulationSpeedInputChange(e){
@@ -1304,133 +1293,3 @@ function SimulationSpeedInputChange(e){
 let interval = setInterval(update, 100);
 
 function update(){  c.render(); }
-
-
-/*
-{
-
-    //Setup...
-    const canvasElement = document.getElementById("circuitCanvas");
-    let bb = canvasElement.getBoundingClientRect();
-    canvasElement.width = bb.width;
-    canvasElement.height = bb.height;
-    var ctx = canvasElement.getContext('2d');
-    var componentWidth = 10;
-
-
-    //mouse listeners
-    ['mousedown', 'mouseup', 'mousemove', 'mouseout', 'dblclick'].forEach(function(eventType)
-    {
-        canvasElement.addEventListener(eventType, function(e) {
-            eventListener(e);
-        })
-    });
-
-    //keyboard listeners
-    ['keyup', 'keydown'].forEach(function(eventType)
-    {
-        document.addEventListener(eventType, function(e) {
-             eventListener(e);
-        })
-    });
-
-    //window listener (resize)
-    window.addEventListener('resize', function(e)
-    {
-        //selfObject.resize(e);
-    })
-
-
-    let c = new UIComponent();
-    let c2 = new UIComponent('r', new Point(110,100), new Point(400,200));
-
-    const components = [c, c2];
-
-    
-
-    
-    render();
-
-    function render()
-    {
-
-        //Clear Screen
-        ctx.fillStyle = 'white';
-        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-        ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
-
-        //Set Default Colors
-        ctx.fillStyle = "black";
-        ctx.lineWidth = 2;
-
-        //render all components
-        for (let i=0; i<components.length; i++)
-        {
-            components[i].render();
-        }
-
-
-    }
-
-
-    function eventListener(event)
-    {
-        let keyPressed = null;
-        let rawKeyPressed = null;
-        let keyReleased = null;
-        let clickedComponent = null;
-
-        //get data from event
-        if (event == null)
-        {
-            event = {type: 'unknown_event'};
-            console.error("event listener was passed an event without a type!");
-        }
-        switch (event.type) 
-        {
-            case 'mousedown':
-                mx = event.offsetX;
-                my = event.offsetY;
-                mouseIsDown = true;
-                //clickedComponent = _getStateClicked(this.mx, this.my);
-                break;
-            case 'mouseup':
-                mx = event.offsetX;
-                my = event.offsetY;
-                mouseIsDown = false;
-                break;
-            case 'mousemove':
-                thismx = event.offsetX;
-                my = event.offsetY;
-                break;
-            case 'mouseout':
-                mx = event.offsetX;
-                my = event.offsetY;
-                mouseIsDown = false;
-                break;
-            case 'dblclick':
-                mx = event.offsetX;
-                my = event.offsetY;
-                mouseIsDown = true;
-                clickedComponent = this._getStateClicked(this.mx, this.my);
-                break;
-            case 'keydown':
-                keyPressed = event.key.toLowerCase();
-                rawKeyPressed = event.key;
-                pressedKeys.set(keyPressed,true);
-                if (keyPressed == 'escape' && userState != 'renaming') { 
-                    userState = 'idle'; 
-                    selectedState = null; 
-                    selectedEdge = null;
-                }
-                break;
-            case 'keyup':
-                keyReleased = event.key.toLowerCase();
-                pressedKeys.set(keyReleased,false);
-                break;
-        }
-    }
-
-
-}*/
-
