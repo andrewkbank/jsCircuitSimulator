@@ -415,6 +415,7 @@ class Circuit{
             matA[en*rowLength + en] += 1/c.resistance;
             matA[en*rowLength + sn] -= 1/c.resistance;
         }
+        //printMatrix(matA,rowLength);
 
         //load matrices (matB) with inductive/current components
         for (let i=0; i<this.currentComponents.length; i++){
@@ -439,7 +440,7 @@ class Circuit{
             matX[c.endNode.number] = c.voltage/2;
         }
         updateMatrix(matA, matX, matB);
-
+        //printMatrix(matA,rowLength);
         //Apply Voltage2n components (known voltages between nodes) to the matrix
         //2 Cases: Case 1: if one node from the Voltage2n component is already known, then we know the other node value
         //         Case 2: We do not know any voltages, but we can take the startNode row and add it to the endNode row. 
@@ -484,13 +485,17 @@ class Circuit{
                 matB[sn] = v;
             }
         }
-
+        //printMatrix(matA,rowLength);
+        //printMatrix(matX,1);
+        //printMatrix(matB,rowLength);
         //GAUSSIAN ELIMINATION//////////////////////////////
         Gaussian(matA, matX, matB, rowLength);
         for (let i=0; i<nodes.length; i++){
             nodes[i].voltage = matX[i];
         }
+        //printMatrix(matA,rowLength);
         //printMatrix(matX, 1);
+        //printMatrix(matB,rowLength);
         return matX;
     }
     _CalculateCurrents() {
