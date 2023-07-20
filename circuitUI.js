@@ -466,13 +466,14 @@ class UIComponent{
 }
 
 class UIButton{
-    constructor(text="button", startPoint=new Point(), size=new Point(), backgroundColor = "grey", textColor = "black", highlightColor = "lightgrey"){
+    constructor(text="button", startPoint=new Point(), size=new Point(), websiteURL = "", backgroundColor = "grey", textColor = "black", highlightColor = "lightgrey"){
         this.text = text;
         this.startPoint = startPoint;
         this.size = size;
         this.backgroundColor = backgroundColor;
         this.textColor = textColor;
         this.highlightColor = highlightColor;
+        this.websiteURL=websiteURL;
     }
     setPosition(upperLeftStartPoint = new Point()){ this.startPoint = upperLeftStartPoint;  }
     setSize(widthAndHeight = new Point()){  this.size = widthAndHeight; }
@@ -498,6 +499,10 @@ class UIButton{
         const verticalOffset = (textSize.actualBoundingBoxAscent - textSize.actualBoundingBoxDescent)/2
         ctx.fillText(this.text, this.startPoint.x + this.size.x/2, this.startPoint.y + this.size.y/2 + verticalOffset);
         ctx.fillStyle = tempFillStyle;
+    }
+    redirectToWebsite(){
+        //window.location.href = this.websiteURL;
+        window.open(this.websiteURL,'_blank');
     }
 }
 
@@ -624,7 +629,8 @@ class CircuitUI{
         this.resetSimulationButton = new UIButton( "Reset Simulation", new Point(10,10), new Point(150,30));
         this.increasePlotTimeScaleButton = new UIButton( "+Time", new Point(), new Point(50,30) );
         this.decreasePlotTimeScaleButton = new UIButton( "-Time", new Point(), new Point(50,30) );
-        this.buttons = [this.plotComponentButton, this.toggleSimulationRunButton, this.resetSimulationButton];
+        this.redirectButton = new UIButton("How to use simulation", new Point(500,10), new Point(600,30),"https://docs.google.com/document/d/1Zo0ypoeOjzJ9L55SJJ1NKIb5JLhesanlvxz-toZ5qQY/edit?usp=sharing");
+        this.buttons = [this.plotComponentButton, this.toggleSimulationRunButton, this.resetSimulationButton,this.redirectButton];
         
         //Circuit related variables
         this.circuit = new Circuit();
@@ -756,6 +762,7 @@ class CircuitUI{
         }
         this.plotComponentButton.render(this.ctx, this.mousePos);
 
+        this.redirectButton.render(this.ctx,this.mousePos);
     }
     _renderPlots(){
         if (this.plots.length < 1) { return; }
@@ -1034,6 +1041,7 @@ class CircuitUI{
                         }
                         break;
                     case this.resetSimulationButton: this._resetSimulation(); break;
+                    case this.redirectButton: this.redirectButton.redirectToWebsite(); break;
                 }
                 return;
             }
