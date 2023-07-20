@@ -120,9 +120,8 @@ function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSi
     ctx.save();
     ctx.translate((startPoint.x+endPoint.x)/2, (startPoint.y+endPoint.y)/2);
     ctx.rotate(rotAngle);
-    const sVoltage = compSimulationData.startNodeVoltage;
-    const eVoltage = compSimulationData.endNodeVoltage;
-    const voltageAcross = sVoltage - eVoltage;
+    const voltageAcross = compSimulationData.voltage;
+    const currentAcross = compSimulationData.current;
     //console.log(sVoltage, eVoltage, avgVoltage, styleFromVoltage(sVoltage), styleFromVoltage(eVoltage));
 
     ctx.beginPath();
@@ -602,7 +601,7 @@ class UIPlot extends UIButton{
 class CircuitUI{
     constructor(htmlCanvasElement){
         //Circuit stuff
-        this.components = [];//[new UIComponent(), new UIComponent("resistor", new Point(50,200))];
+        this.components = [];
 
         //Canvas
         this.htmlCanvasElement = htmlCanvasElement;
@@ -693,7 +692,6 @@ class CircuitUI{
             }
             this.components[i].render(ctx, this.componentWidth, compSimulationData);
         }
-
         if (this.showNodeVoltages){
             const keysArray = Array.from( this.nodeMap.keys() );
             for (let i=0; i<keysArray.length; i++){
@@ -709,7 +707,6 @@ class CircuitUI{
                 ctx.closePath();
             }
         }
-
         this._renderButtons();
         this._renderPlots();
     }
@@ -1008,7 +1005,7 @@ class CircuitUI{
         // finishingEditingComponentValue
 
         //console.log(this.userState);
-        if (event.type == "keydown" && keyPressed == "p"){  console.log(this.getSaveText());    }
+        if (event.type == "keydown" && keyPressed == "p"){  console.log(this._getCircuitText());    }
         if (event.type == "keydown" && keyPressed == "enter"){  /*this.circuit = new Circuit( this._getCircuitText() );*/ }
         if (event.type == "mousemove"){ //handle mouse cursor type (if over button or over component, change cursor style);
             if (componentOver != null) {    this.htmlCanvasElement.style.cursor="crosshair";
@@ -1157,6 +1154,12 @@ class CircuitUI{
         })
     }
 
+    //Note: loadFromSave, _getCircuitText, and resetSimulation suck
+    //Replace with Circuit-centralized system, not a text-based system
+    //ie: generate visual components from the stored Circuit instance
+    //worry about circuit editing later...
+
+    ///*
     loadFromSave(saveText = ""){
         saveText.replace(" ", "");
         const arr = saveText.split(";");
@@ -1175,8 +1178,9 @@ class CircuitUI{
 
             if (c != null){ this._addComponent(c);  }
         }
-        this._resetSimulation();
+        this._resetSimulation();    //calls new Circuit(this._getCircuitText()); 
     }
+    /*
     getSaveText(){
         let s = "";
         for (let i=0; i<this.components.length; i++)
@@ -1185,18 +1189,20 @@ class CircuitUI{
         }
         return s;
     }
+    */
     _getCircuitText(){
         //this function is used to convert the UI circuit into a text string the Circuit() class can understand and simulate.
         this.nodeMap = new Map(); //maps position on screen (point.getHashCode()) to node name
+        //Andrew's note: where is this.nodeMap set??
+
         this.nodes = [];
         const nodeMap = this.nodeMap;
         let nodeOn = 0;
-
         //first, map all of the wire points to nodes.
         for (let i=0; i<this.components.length; i++){
             const c= this.components[i];
             if (!(c.type == "wire" || c.type == "w")) { continue; }
-            
+
             let sn = nodeMap.get(c.startPoint.getHashCode());
             let en = nodeMap.get(c.endPoint.getHashCode());
             if (sn == null && en == null){ //case 1: both are null - get next node name and set both points to it in the map
@@ -1216,14 +1222,14 @@ class CircuitUI{
                     if (sn < en){
                         //convert all en to sn
                         for (let k=0; k<keysArray.length; k++){
-                            if (keysArray[k] == en){
+                            if (nodeMap.get(keysArray[k]) == en){
                                 nodeMap.set(keysArray[k], sn);
                             }
                         }
                     } else {
                         //convert all sn to en
                         for (let k=0; k<keysArray.length; k++){
-                            if (keysArray[k] == sn){
+                            if (nodeMap.get(keysArray[k]) == sn){
                                 nodeMap.set(keysArray[k], en);
                             }
                         }
@@ -1281,7 +1287,12 @@ const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
 const c = new CircuitUI(htmlCanvasElement);
 
-c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;r,420,180,420,280,1k;w,420,280,300,280,1;g,300,280,300,320,0;");
+//series
+//c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;r,420,180,420,280,1k;w,420,280,300,280,1;g,300,280,300,320,0;");
+//parallel
+c.loadFromSave("v,300,280,300,180,10;w,420,280,300,280,1;g,300,280,300,320,0;r,300,180,420,180,1k;w,420,80,420,180,1;w,420,180,420,280,1;w,300,180,300,80,1;r,300,80,420,80,1k;");
+//parallel + series (works)
+//c.loadFromSave("v,300,280,300,180,10;w,420,280,300,280,1;g,300,280,300,320,0;r,300,180,420,180,1k;w,420,80,420,180,1;w,300,180,300,80,1;r,300,80,420,80,1k;r,420,180,420,280,1k;");
 //c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;w,420,280,300,280,1;g,300,280,300,320,0;l,420,180,420,280,1m;r,420,180,500,180,1;c,500,180,500,280,1u;w,500,280,420,280,1;");
 
 
