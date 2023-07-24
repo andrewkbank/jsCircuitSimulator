@@ -72,6 +72,18 @@ class Point {
         }
         return false;
     }
+    dx(x){
+        if (x instanceof Point){
+            x=x.x
+        }
+        return this.x-x;
+    }
+    dy(y){
+        if(y instanceof Point){
+            y=y.y;
+        }
+        return this.y-y;
+    }
     distTo(x,y) {
         if (x instanceof Point){
             y = x.y;
@@ -355,12 +367,16 @@ function renderDiode(ctx, componentWidth, startPoint, endPoint, value){
 
 //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString,
 class UIComponent{
-    constructor(type="wire", startPoint=new Point(), endPoint=new Point(100,100), value){
+    constructor(type="wire", startPoint=new Point(), endPoint=new Point(100,100), value, name=""){
         if (type != null && type.length > 1){   type.toLowerCase(); }
 
         //allowable types: wire,w, resistor,r, capacitor,c, inductor,i, currentSource,cs, v,voltage2n,v2n, voltage1n,v1n,V,
         this.type = type;
-        this.name = this.type[0] + Math.round(Math.random()*1000);
+        if(name==""){
+            this.name = this.type[0] + Math.round(Math.random()*1000);
+        }else{
+            this.name = name;
+        }
         this.startPoint = startPoint; //of type Point, in canvas coordinates
         this.endPoint = endPoint;
 
@@ -501,8 +517,8 @@ class UIButton{
         ctx.fillStyle = tempFillStyle;
     }
     redirectToWebsite(){
-        //window.location.href = this.websiteURL;
-        window.open(this.websiteURL,'_blank');
+        //window.location.href = this.websiteURL;   //this one makes the current tab the instructions url
+        window.open(this.websiteURL,'_blank');      //this one opens a new tab for the instructions url
     }
 }
 
@@ -604,7 +620,7 @@ class UIPlot extends UIButton{
 }
 
 class CircuitUI{
-    constructor(htmlCanvasElement){
+    constructor(htmlCanvasElement, circuit=null){
         //Circuit stuff
         this.components = [];
 
@@ -633,7 +649,12 @@ class CircuitUI{
         this.buttons = [this.plotComponentButton, this.toggleSimulationRunButton, this.resetSimulationButton,this.redirectButton];
         
         //Circuit related variables
-        this.circuit = new Circuit();
+        if(circuit==null){
+            this.circuit = new Circuit();
+        }else{
+            this.circuit = circuit;
+            this.loadFromCircuitText(this.circuit.getCircuitText());
+        }
         this.nodeMap = new Map();
         this.editedCircuit = true;    //so we know when we need to update the circuit
         this.run = false;
@@ -1181,7 +1202,7 @@ class CircuitUI{
             if (a.length == 6){
                 c = new UIComponent(a[0], new Point(a[1], a[2]), new Point(a[3], a[4]), a[5]);
             } else if (a.length == 7){
-                c = new UIComponent(a[0], new Point(a[1], a[2]), new Point(a[3], a[4]), a[5], a[6]);
+                c = new UIComponent(a[0], new Point(a[1], a[2]), new Point(a[3], a[4]), a[5], a[6]);    //a[6] is the given name
             }
 
             if (c != null){ this._addComponent(c);  }
@@ -1278,27 +1299,152 @@ class CircuitUI{
 
             s += c.type+","+c.name+","+c.startNodeName+","+c.endNodeName+","+c.value+",";
         }
-        //console.log(s);
+        console.log(s);
         return s;
     }
     _resetSimulation(){
         this.circuit = new Circuit(this._getCircuitText()); 
         this.editedCircuit = false;
     }
+    loadFromCircuitText(circuitText = ""){
+        let nodes = [];                 //the int names of the nodes
+        let nodeMap = new Map();        //nodeMap allows for us to quickly search for nodes by name;
+        let points = [];                //the Point locations of each node on the UI
+        let duplicateEdges = new Map(); //duplicateEdges makes sure that attraction doesn't go crazy for two nodes with several components between them
+
+        //Remove all spaces, returns, etc from string, and convert to a list
+        circuitText = circuitText.split(' ').join('');
+        circuitText = circuitText.split('\n').join('');
+        circuitText = circuitText.split('\r').join('');
+        circuitText = circuitText.toLowerCase();
+
+        const list = circuitText.split(',');    //list contains all of the components (edges)
+
+        //first get a list of all of the nodes and Points
+        for (let i=0; i<list.length-4; i+=5) {
+            //exclude ground components?
+            let node1Name = list[i+2];
+            let node2Name = list[i+3];
+            if(nodeMap.get(node1Name) != null && nodeMap.get(node2Name) != null){
+                duplicateEdges.set(i,{node1Name,node2Name});
+            }
+            if (nodeMap.get(node1Name) == null){
+                nodes.push(node1Name);
+                nodeMap.set(node1Name, nodes.length-1);
+                points.push(new Point(Math.random()*1000,Math.random()*1000)); //adds a point on the UI that is associated with the node
+            }
+            if (nodeMap.get(node2Name) == null){
+                nodes.push(node2Name);
+                nodeMap.set(node2Name, nodes.length-1);
+                points.push(new Point(Math.random()*1000,Math.random()*1000)); //adds a point on the UI that is associated with the node
+            }
+        }
+        //uses a force-directed layout
+        const k = 0.01; // Spring constant
+        const c = 10; // Repulsion constant
+        const damping = 0.9; // Damping factor to avoid oscillations
+
+        let forceX = 0;
+        let forceY = 0;
+        for(let l=0;l<nodes.length*100;++l){ //do the force updating a few times proportional to the number of nodes
+            //calculate and apply "forces" to nodes to find their correct location
+            for(let i=0; i<nodes.length;++i){
+                //attraction (nodes connected by edges attract)
+                for (let j=0; j<list.length-4; j+=5) {
+                    if(duplicateEdges.get(j)==null){
+                        let node1Name = list[j+2];
+                        let node2Name = list[j+3];
+                        //if edge doesn't contain nodes[i], skip
+                        if(nodes[i]!=node1Name&&nodes[i]!=node2Name) continue;
+                        if(node1Name==nodes[i]){
+                            node1Name=node2Name;    //node1Name is the one we compare to nodes[i]
+                        }
+                        const dx = points[i].dx(points[nodeMap.get(node1Name)]);
+                        const dy = points[i].dy(points[nodeMap.get(node1Name)]);
+                        const distance = points[i].distTo(points[nodeMap.get(node1Name)]);
+                        if(distance!=0){
+                            const force = k * distance;
+                            forceX-=force*(dx/distance);
+                            forceY-=force*(dy/distance);
+                        }
+                    }
+                }
+
+                //repulsion force
+                for(let j=0;j<nodes.length;++j){
+                    if(i===j) continue;
+                    const dx = points[i].dx(points[j]);
+                    const dy = points[i].dy(points[j]);
+                    const distance = points[i].distTo(points[j]);
+                    if(distance!=0){
+                        const force = (c*c) / distance;
+                        forceX+=force*(dx/distance);
+                        forceY+=force*(dy/distance);
+                    }else{
+                        forceX=Math.random()*20-10;
+                        forceY=Math.random()*20-10;
+                    }
+                }
+
+                //apply forces
+                points[i].addi(forceX,forceY);  //maybe make sure the coordinates are within the frame?
+                forceX*=damping;
+                forceY*=damping;
+            }
+        }
+        //normalize the points
+        let maxX=Number.MIN_VALUE;
+        let maxY=Number.MIN_VALUE;
+        let minX=Number.MAX_VALUE;
+        let minY=Number.MAX_VALUE;
+        for(let i=0; i<points.length;++i){
+            minX = Math.min(minX, points[i].x);
+            minY = Math.min(minY, points[i].y);
+            maxX = Math.max(maxX, points[i].x);
+            maxY = Math.max(maxY, points[i].y);
+        }
+        // Calculate the range of the points in both dimensions
+        const rangeX = maxX - minX;
+        const rangeY = maxY - minY;
+        // Calculate the scaling factors for both dimensions
+        const scaleX = 800 / rangeX;
+        const scaleY = 300 / rangeY;
+        for(let i=0; i<points.length;++i){
+            points[i].x=(points[i].x-minX)*scaleX+100;
+            points[i].y=(points[i].y-minY)*scaleY+100;
+        }
+
+        //make the UIComponents
+        for (let i=0; i<list.length-4; i+=5) {
+            let type =      list[i  ];
+            let name =      list[i+1];
+            let node1Name = list[i+2];
+            let node2Name = list[i+3];
+            let value1 =    list[i+4];
+
+            console.log("node1: "+node1Name);
+            console.log(points[nodeMap.get(node1Name)]);
+            console.log("node2: "+node2Name);
+            console.log(points[nodeMap.get(node2Name)]);
+            let c;
+            c = new UIComponent(type, points[nodeMap.get(node1Name)], points[nodeMap.get(node2Name)], value1, name);
+            this._addComponent(c);
+        }
+    }
 }
 
 
 
-
+circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,0,1000,r,r836,2,0,1000,");
 const htmlCanvasElement = document.getElementById("circuitCanvas");
 const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
-const c = new CircuitUI(htmlCanvasElement);
+const c = new CircuitUI(htmlCanvasElement,circuit);
 
 //series
 //c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;r,420,180,420,280,1k;w,420,280,300,280,1;g,300,280,300,320,0;");
 //parallel
-c.loadFromSave("v,300,280,300,180,10;w,420,280,300,280,1;g,300,280,300,320,0;r,300,180,420,180,1k;w,420,80,420,180,1;w,420,180,420,280,1;w,300,180,300,80,1;r,300,80,420,80,1k;");
+//c.loadFromSave("v,300,280,300,180,10;w,420,280,300,280,1;g,300,280,300,320,0;r,300,180,420,180,1k;w,420,80,420,180,1;w,420,180,420,280,1;w,300,180,300,80,1;r,300,80,420,80,1k;");
 //parallel + series (works)
 //c.loadFromSave("v,300,280,300,180,10;w,420,280,300,280,1;g,300,280,300,320,0;r,300,180,420,180,1k;w,420,80,420,180,1;w,300,180,300,80,1;r,300,80,420,80,1k;r,420,180,420,280,1k;");
 //c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;w,420,280,300,280,1;g,300,280,300,320,0;l,420,180,420,280,1m;r,420,180,500,180,1;c,500,180,500,280,1u;w,500,280,420,280,1;");

@@ -270,6 +270,7 @@ class Circuit{
         this.nodeMap = new Map();          //nodeMap allows for us to quickly search for nodes by name;
             //maps string name to node object
         this.componentMap = new Map();
+        this.circuitText = string;      //store the circuitText to pass to circuitUI
 
         //Remove all spaces, returns, etc from string, and convert to a list
         string = string.split(' ').join('');
@@ -693,4 +694,5 @@ class Circuit{
 
         //what we want is to return a map that maps key=node or component name to value=node or component voltage
     }
+    getCircuitText(){ return this.circuitText;  }
 }
