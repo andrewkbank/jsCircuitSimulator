@@ -91,6 +91,13 @@ class Point {
         }
         return Math.sqrt( Math.pow(this.x-x, 2) + Math.pow(this.y-y, 2) );
     }
+    midpoint(x,y){
+        if(x instanceof Point){
+            y = x.y;
+            x = x.x;
+        }
+        return new Point((this.x+x)/2,(this.y+y)/2);
+    }
 }
 
 
@@ -1354,8 +1361,24 @@ class CircuitUI{
                     if(duplicateEdges.get(j)==null){
                         let node1Name = list[j+2];
                         let node2Name = list[j+3];
-                        //if edge doesn't contain nodes[i], skip
-                        if(nodes[i]!=node1Name&&nodes[i]!=node2Name) continue;
+                        //if edge doesn't contain nodes[i], repulsion of midpoint
+                        if(nodes[i]!=node1Name&&nodes[i]!=node2Name){
+                            const midpoint = points[nodeMap.get(node1Name)].midpoint(points[nodeMap.get(node2Name)]);
+                            //console.log(node1Name);
+                            //console.log(points[nodeMap.get(node1Name)]);
+                            //console.log(points[nodeMap.get(node2Name)]);
+                            const dx = points[i].dx(midpoint);
+                            const dy = points[i].dy(midpoint);
+                            const distance = points[i].distTo(midpoint);
+                            if(distance!=0){
+                                const force = (c*c) / distance;
+                                forceX+=force*(dx/distance);
+                                forceY+=force*(dy/distance);
+                            }else{
+                                forceX=Math.random()*20-10;
+                                forceY=Math.random()*20-10;
+                            }
+                        }
                         if(node1Name==nodes[i]){
                             node1Name=node2Name;    //node1Name is the one we compare to nodes[i]
                         }
@@ -1393,8 +1416,8 @@ class CircuitUI{
             }
         }
         //normalize the points
-        let maxX=Number.MIN_VALUE;
-        let maxY=Number.MIN_VALUE;
+        let maxX=-1*Number.MAX_VALUE;
+        let maxY=-1*Number.MAX_VALUE;
         let minX=Number.MAX_VALUE;
         let minY=Number.MAX_VALUE;
         for(let i=0; i<points.length;++i){
@@ -1406,12 +1429,12 @@ class CircuitUI{
         // Calculate the range of the points in both dimensions
         const rangeX = maxX - minX;
         const rangeY = maxY - minY;
-        // Calculate the scaling factors for both dimensions
-        const scaleX = 800 / rangeX;
-        const scaleY = 300 / rangeY;
+        //console.log("rangeX: "+rangeX+ " minX: "+minX+" maxX: "+maxX);
+        //console.log("rangeY: "+rangeY+" minY: "+minY+" maxY: "+maxY);
         for(let i=0; i<points.length;++i){
-            points[i].x=(points[i].x-minX)*scaleX+100;
-            points[i].y=(points[i].y-minY)*scaleY+100;
+            console.log(points[i]);
+            points[i].x=(points[i].x-minX)/rangeX * 800+100;
+            points[i].y=(points[i].y-minY)/rangeY * 300+100;
         }
 
         //make the UIComponents
@@ -1422,10 +1445,6 @@ class CircuitUI{
             let node2Name = list[i+3];
             let value1 =    list[i+4];
 
-            console.log("node1: "+node1Name);
-            console.log(points[nodeMap.get(node1Name)]);
-            console.log("node2: "+node2Name);
-            console.log(points[nodeMap.get(node2Name)]);
             let c;
             c = new UIComponent(type, points[nodeMap.get(node1Name)], points[nodeMap.get(node2Name)], value1, name);
             this._addComponent(c);
@@ -1435,7 +1454,8 @@ class CircuitUI{
 
 
 
-circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,0,1000,r,r836,2,0,1000,");
+//circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,0,1000,r,r836,2,0,1000,");
+circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,4,1000,r,r836,4,0,1000,r,r69,4,5,1000,r,r68,5,0,1000,");
 const htmlCanvasElement = document.getElementById("circuitCanvas");
 const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
