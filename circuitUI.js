@@ -51,6 +51,22 @@ class Point {
         this.x = x;
         this.y = y;
     }
+    lockTo(segPoint1,segPoint2){    //locks a point to be on a line perpendicular to line segment that goes through segPoint1
+        //all parameters are points
+        if(!segPoint1 instanceof Point && !segPoint2 instanceof Point){ return;}
+        //find the intersection between 2 lines:
+        //line 1
+        //(y-segPoint1.y)=-1*(segPoint2.x-segPoint1.x)/(segPoint2.y-segPoint1.y)*(x-segPoint1.x)
+        const slope1 = -1*(segPoint2.x-segPoint1.x)/(segPoint2.y-segPoint1.y);
+        const yIntercept1 = segPoint1.y-slope1*segPoint1.x;
+        //line 2
+        //(y-this.y)=(segPoint2.y-segPoint1.y)/(segPoint2.x-segPoint1.x)*(x-this.x)
+        const slope2 = (segPoint2.y-segPoint1.y)/(segPoint2.x-segPoint1.x);
+        const yIntercept2 = this.y-slope2*this.x;
+
+        this.x=(yIntercept2 - yIntercept1) / (slope1 - slope2);
+        this.y=slope1 * this.x + yIntercept1;
+    }
     getHashCode(){
         return this.x*1000000 + this.y;
     }
@@ -1318,6 +1334,7 @@ class CircuitUI{
         let nodeMap = new Map();        //nodeMap allows for us to quickly search for nodes by name;
         let points = [];                //the Point locations of each node on the UI
         let duplicateEdges = new Map(); //duplicateEdges makes sure that attraction doesn't go crazy for two nodes with several components between them
+        let duplicateEdgeMapsTo = new Map();    //stores the original two points that the duplicate edge would've had
         let numDuplicates = 0;          //stores the number of extra parallel edges
         let connectionsMap = new Map(); //stores node connections (to detect parallel edges)
 
@@ -1341,9 +1358,17 @@ class CircuitUI{
                 nodeMap.set(newNode1,nodes.length-1);
                 nodes.push(newNode2);
                 nodeMap.set(newNode2,nodes.length-1);
-                points.push(new Point(Math.random()*1000,Math.random()*1000)); //adds a point on the UI that is associated with the node
-                points.push(new Point(Math.random()*1000,Math.random()*1000)); //adds a point on the UI that is associated with the node
+                let point1=new Point(Math.random()*1000,Math.random()*1000);
+                let point2=new Point(Math.random()*1000,Math.random()*1000);
+                points.push(point1); //adds a point on the UI that is associated with the node
+                points.push(point2); //adds a point on the UI that is associated with the node
                 duplicateEdges.set(i,{newNode1,newNode2});
+                duplicateEdgeMapsTo.set(newNode1,{node1Name,node2Name});
+                //might have to swap node1Name and node2Name to make this work
+                let temp=node1Name;
+                node1Name=node2Name;
+                node2Name=temp;
+                duplicateEdgeMapsTo.set(newNode2,{node2Name,node1Name});
                 numDuplicates++;
             }else{
                 //add node1Name<->node2Name to connectionsMap
@@ -1457,6 +1482,17 @@ class CircuitUI{
                 forceX*=damping;
                 forceY*=damping;
             }
+            //put all parallel components on normal lines
+            for(let i=0;i<nodes.length;++i){
+                if(duplicateEdgeMapsTo.get(nodes[i])!=null){
+                    console.log(i);
+                    console.log(duplicateEdgeMapsTo.get(nodes[i]));
+                    let node1 = duplicateEdgeMapsTo.get(nodes[i]).node1Name;
+                    let node2 = duplicateEdgeMapsTo.get(nodes[i]).node2Name;
+                    console.log(points[nodeMap.get(node1)],points[nodeMap.get(node2)]);
+                    points[i].lockTo(points[nodeMap.get(node2)],points[nodeMap.get(node1)]);
+                }
+            }
         }
         //normalize the points
         let maxX=-1*Number.MAX_VALUE;
@@ -1475,11 +1511,10 @@ class CircuitUI{
         //console.log("rangeX: "+rangeX+ " minX: "+minX+" maxX: "+maxX);
         //console.log("rangeY: "+rangeY+" minY: "+minY+" maxY: "+maxY);
         for(let i=0; i<points.length;++i){
-            console.log(points[i]);
+            //console.log(points[i]);
             points[i].x=(points[i].x-minX)/rangeX * 800+100;
             points[i].y=(points[i].y-minY)/rangeY * 300+100;
         }
-
         //make the UIComponents
         for (let i=0; i<list.length-4; i+=5) {
             let type =      list[i  ];
