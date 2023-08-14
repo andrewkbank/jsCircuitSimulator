@@ -1318,6 +1318,8 @@ class CircuitUI{
         let nodeMap = new Map();        //nodeMap allows for us to quickly search for nodes by name;
         let points = [];                //the Point locations of each node on the UI
         let duplicateEdges = new Map(); //duplicateEdges makes sure that attraction doesn't go crazy for two nodes with several components between them
+        let numDuplicates = 0;          //stores the number of extra parallel edges
+        let connectionsMap = new Map(); //stores node connections (to detect parallel edges)
 
         //Remove all spaces, returns, etc from string, and convert to a list
         circuitText = circuitText.split(' ').join('');
@@ -1332,8 +1334,27 @@ class CircuitUI{
             //exclude ground components?
             let node1Name = list[i+2];
             let node2Name = list[i+3];
-            if(nodeMap.get(node1Name) != null && nodeMap.get(node2Name) != null){
-                duplicateEdges.set(i,{node1Name,node2Name});
+            if(connectionsMap.get(node1Name)!=null&&connectionsMap.get(node1Name).has(node2Name)){//component is parallel to a previous component
+                let newNode1=Number.MAX_SAFE_INTEGER-numDuplicates*2;
+                let newNode2=Number.MAX_SAFE_INTEGER-numDuplicates*2-1;
+                nodes.push(newNode1);    //makes up a new node number
+                nodeMap.set(newNode1,nodes.length-1);
+                nodes.push(newNode2);
+                nodeMap.set(newNode2,nodes.length-1);
+                points.push(new Point(Math.random()*1000,Math.random()*1000)); //adds a point on the UI that is associated with the node
+                points.push(new Point(Math.random()*1000,Math.random()*1000)); //adds a point on the UI that is associated with the node
+                duplicateEdges.set(i,{newNode1,newNode2});
+                numDuplicates++;
+            }else{
+                //add node1Name<->node2Name to connectionsMap
+                if(connectionsMap.get(node1Name)==null){
+                    connectionsMap.set(node1Name,new Set());
+                }
+                connectionsMap.get(node1Name).add(node2Name);
+                if(connectionsMap.get(node2Name)==null){
+                    connectionsMap.set(node2Name,new Set());
+                }
+                connectionsMap.get(node2Name).add(node1Name);
             }
             if (nodeMap.get(node1Name) == null){
                 nodes.push(node1Name);
@@ -1358,30 +1379,52 @@ class CircuitUI{
             for(let i=0; i<nodes.length;++i){
                 //attraction (nodes connected by edges attract)
                 for (let j=0; j<list.length-4; j+=5) {
+                    let node1Name;
+                    let node2Name;
                     if(duplicateEdges.get(j)==null){
-                        let node1Name = list[j+2];
-                        let node2Name = list[j+3];
-                        //if edge doesn't contain nodes[i], repulsion of midpoint
-                        if(nodes[i]!=node1Name&&nodes[i]!=node2Name){
-                            const midpoint = points[nodeMap.get(node1Name)].midpoint(points[nodeMap.get(node2Name)]);
-                            //console.log(node1Name);
-                            //console.log(points[nodeMap.get(node1Name)]);
-                            //console.log(points[nodeMap.get(node2Name)]);
-                            const dx = points[i].dx(midpoint);
-                            const dy = points[i].dy(midpoint);
-                            const distance = points[i].distTo(midpoint);
-                            if(distance!=0){
-                                const force = (c*c) / distance;
-                                forceX+=force*(dx/distance);
-                                forceY+=force*(dy/distance);
-                            }else{
-                                forceX=Math.random()*20-10;
-                                forceY=Math.random()*20-10;
-                            }
+                        node1Name = list[j+2];
+                        node2Name = list[j+3];
+                    }else{
+                        //console.log(duplicateEdges.get(j));
+                        node1Name = duplicateEdges.get(j).newNode1;
+                        node2Name = duplicateEdges.get(j).newNode2;
+                    }
+                    //if edge doesn't contain nodes[i], repulsion of midpoint
+                    if(nodes[i]!=node1Name&&nodes[i]!=node2Name){
+                        //console.log(node1Name);
+                        //console.log(points[nodeMap.get(node1Name)]);
+                        //console.log(points[nodeMap.get(node2Name)]);
+                        const midpoint = points[nodeMap.get(node1Name)].midpoint(points[nodeMap.get(node2Name)]);
+                        const dx = points[i].dx(midpoint);
+                        const dy = points[i].dy(midpoint);
+                        const distance = points[i].distTo(midpoint);
+                        if(distance!=0){
+                            const force = (c*c) / distance;
+                            forceX+=force*(dx/distance);
+                            forceY+=force*(dy/distance);
+                        }else{
+                            forceX=Math.random()*20-10;
+                            forceY=Math.random()*20-10;
                         }
-                        if(node1Name==nodes[i]){
-                            node1Name=node2Name;    //node1Name is the one we compare to nodes[i]
-                        }
+                        //continue;
+                    }
+                    if(node1Name==nodes[i]){
+                        node1Name=node2Name;    //node1Name is the one we compare to nodes[i]
+                    }
+                    //calculate the attraction force
+                    const dx = points[i].dx(points[nodeMap.get(node1Name)]);
+                    const dy = points[i].dy(points[nodeMap.get(node1Name)]);
+                    const distance = points[i].distTo(points[nodeMap.get(node1Name)]);
+                    if(distance!=0){
+                        const force = k * distance;
+                        forceX-=force*(dx/distance);
+                        forceY-=force*(dy/distance);
+                    }
+                    //if it's a parallel node, attract it to its og node
+                    if(duplicateEdges.get(j)!=null){
+                        node1Name = list[j+2];
+                        node1Name = list[j+3];
+                        //calculate the attraction force
                         const dx = points[i].dx(points[nodeMap.get(node1Name)]);
                         const dy = points[i].dy(points[nodeMap.get(node1Name)]);
                         const distance = points[i].distTo(points[nodeMap.get(node1Name)]);
@@ -1441,21 +1484,37 @@ class CircuitUI{
         for (let i=0; i<list.length-4; i+=5) {
             let type =      list[i  ];
             let name =      list[i+1];
-            let node1Name = list[i+2];
-            let node2Name = list[i+3];
+            let node1Name;
+            let node2Name;
             let value1 =    list[i+4];
+            if(duplicateEdges.get(i)==null){
+                node1Name = list[i+2];
+                node2Name = list[i+3];
+            }else{
+                //console.log(duplicateEdges.get(i));
+                node1Name = duplicateEdges.get(i).newNode1;
+                node2Name = duplicateEdges.get(i).newNode2;
+            }
 
             let c;
             c = new UIComponent(type, points[nodeMap.get(node1Name)], points[nodeMap.get(node2Name)], value1, name);
             this._addComponent(c);
+            if(duplicateEdges.get(i)!=null){
+                let node1Name2 = list[i+2];
+                let node2Name2 = list[i+3];
+                c = new UIComponent("wire", points[nodeMap.get(node1Name)], points[nodeMap.get(node2Name2)], 0, "");
+                this._addComponent(c);
+                c = new UIComponent("wire", points[nodeMap.get(node1Name2)], points[nodeMap.get(node2Name)], 0, "");
+                this._addComponent(c);
+            }
         }
     }
 }
 
 
 
-//circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,0,1000,r,r836,2,0,1000,");
-circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,4,1000,r,r836,4,0,1000,r,r69,4,5,1000,r,r68,5,0,1000,");
+circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,0,1000,r,r836,2,0,1000,");
+//circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,4,1000,r,r836,4,0,2000,r,r69,4,5,3000,r,r68,5,0,4000,");
 const htmlCanvasElement = document.getElementById("circuitCanvas");
 const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
