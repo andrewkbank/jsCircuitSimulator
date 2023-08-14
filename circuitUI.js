@@ -1348,7 +1348,8 @@ class CircuitUI{
 
         //first get a list of all of the nodes and Points
         for (let i=0; i<list.length-4; i+=5) {
-            //exclude ground components?
+            //exclude ground components
+            if(list[i]=="voltage1n"||list[i]=="v1n"||list[i]=="g"){continue;}
             let node1Name = list[i+2];
             let node2Name = list[i+3];
             if(connectionsMap.get(node1Name)!=null&&connectionsMap.get(node1Name).has(node2Name)){//component is parallel to a previous component
@@ -1404,6 +1405,7 @@ class CircuitUI{
             for(let i=0; i<nodes.length;++i){
                 //attraction (nodes connected by edges attract)
                 for (let j=0; j<list.length-4; j+=5) {
+                    if(list[j]=="voltage1n"||list[j]=="v1n"||list[j]=="g"){continue;}
                     let node1Name;
                     let node2Name;
                     if(duplicateEdges.get(j)==null){
@@ -1485,11 +1487,11 @@ class CircuitUI{
             //put all parallel components on normal lines
             for(let i=0;i<nodes.length;++i){
                 if(duplicateEdgeMapsTo.get(nodes[i])!=null){
-                    console.log(i);
-                    console.log(duplicateEdgeMapsTo.get(nodes[i]));
+                    //console.log(i);
+                    //console.log(duplicateEdgeMapsTo.get(nodes[i]));
                     let node1 = duplicateEdgeMapsTo.get(nodes[i]).node1Name;
                     let node2 = duplicateEdgeMapsTo.get(nodes[i]).node2Name;
-                    console.log(points[nodeMap.get(node1)],points[nodeMap.get(node2)]);
+                    //console.log(points[nodeMap.get(node1)],points[nodeMap.get(node2)]);
                     points[i].lockTo(points[nodeMap.get(node2)],points[nodeMap.get(node1)]);
                 }
             }
@@ -1532,14 +1534,20 @@ class CircuitUI{
             }
 
             let c;
-            c = new UIComponent(type, points[nodeMap.get(node1Name)], points[nodeMap.get(node2Name)], value1, name);
+            let point1=points[nodeMap.get(node1Name)];
+            let point2=points[nodeMap.get(node2Name)];
+            //in the case of 1-node voltages or ground, one of the points will be undefined:
+            if(point1===undefined){point1=new Point(point2.x,point2.y); point1.addi(0,50);}
+            if(point2===undefined){point2=new Point(point1.x,point1.y); point2.addi(0,50);}
+            c = new UIComponent(type,point1 ,point2 , value1, name);
+            console.log(c);
             this._addComponent(c);
             if(duplicateEdges.get(i)!=null){
                 let node1Name2 = list[i+2];
                 let node2Name2 = list[i+3];
-                c = new UIComponent("wire", points[nodeMap.get(node1Name)], points[nodeMap.get(node2Name2)], 0, "");
+                c = new UIComponent("wire", point1, points[nodeMap.get(node2Name2)], 0, "");
                 this._addComponent(c);
-                c = new UIComponent("wire", points[nodeMap.get(node1Name2)], points[nodeMap.get(node2Name)], 0, "");
+                c = new UIComponent("wire", points[nodeMap.get(node1Name2)], point2, 0, "");
                 this._addComponent(c);
             }
         }
