@@ -144,7 +144,9 @@ class Voltage2n extends VoltageSource {
     
 }
 class Voltage1n extends VoltageSource {
-
+    getType(){
+        return "v1n"
+    }
 }
 class Capacitor extends Voltage2n {
     constructor(name, startNode, endNode, capacitance){
@@ -328,33 +330,38 @@ class Circuit{
         for(let i = 0; i<numNodes; ++i){
             let node = new Node(i, i);
             this.nodes.push(node);
-            this.nodeMap.set(i, node);
+            this.nodeMap.set(String(i), node);
         }
 
         //make components:
-
-        //first, make sure that every node has a resistor that goes to it
-        let nodeChecklist = [];
         let resistorsGenerated=0;
-        for(let i=0;i<numNodes;++i){nodeChecklist.push(false);}
-        for(let i = 0 ;i<numNodes; ++i){
-            if(nodeChecklist[i]){ continue;}
-            let node2=getRandomIntInclusive(0,numNodes-1,i);
-            let comp = new Resistor(("r"+resistorsGenerated), this.nodes[i], this.nodes[node2], Number(getRandomIntInclusive(0,200)*50));
+
+        //generate the voltage source
+        let node1=0;
+        let node2=1;
+        let comp = new Voltage2n("v1", this.nodes[node1], this.nodes[node2], Number(getRandomIntInclusive(1,20)));
+        this.components.push(comp);
+        this.componentMap.set(comp.name, comp);
+        this.nodes[node1].startComponents.push(comp);
+        this.nodes[node2].endComponents.push(comp);
+
+        //generate the resistors so there's a path from node 1 to node 0
+        for(let i = 1;i<numNodes; ++i){
+            node2 = i+1;
+            if(node2>=numNodes){node2=0;}
+            comp = new Resistor(("r"+resistorsGenerated), this.nodes[i], this.nodes[node2], Number(getRandomIntInclusive(1,200)*50));
             this.components.push(comp);
             this.componentMap.set(comp.name, comp);
             this.nodes[i].startComponents.push(comp);
             this.nodes[node2].endComponents.push(comp);
-            nodeChecklist[i]=true;
-            nodeChecklist[node2]=true;
             ++resistorsGenerated;
         }
 
         //then, randomly generate the rest of the resistors
         while(resistorsGenerated<numComponents){
-            let node1=getRandomIntInclusive(0,numNodes-1);
-            let node2=getRandomIntInclusive(0,numNodes-1,node1);
-            let comp = new Resistor(("r"+resistorsGenerated), this.nodes[node1], this.nodes[node2], Number(getRandomIntInclusive(0,200)*50));
+            node1=getRandomIntInclusive(0,numNodes-1);
+            node2=getRandomIntInclusive(0,numNodes-1,node1);
+            comp = new Resistor(("r"+resistorsGenerated), this.nodes[node1], this.nodes[node2], Number(getRandomIntInclusive(0,200)*50));
             this.components.push(comp);
             this.componentMap.set(comp.name, comp);
             this.nodes[node1].startComponents.push(comp);
@@ -362,14 +369,16 @@ class Circuit{
             ++resistorsGenerated
         }
 
-        //generate the voltage source
-        let node1=getRandomIntInclusive(0,numNodes-1);
-        let node2=getRandomIntInclusive(0,numNodes-1,node1);
-        let comp = new Voltage2n(("v1"), this.nodes[node1], this.nodes[node2], Number(getRandomIntInclusive(0,20)));
+        //make ground
+        node1=getRandomIntInclusive(0,numNodes-1);
+        node2=new Node(numNodes,numNodes);
+        this.nodes.push(node2);
+        this.nodeMap.set(String(numNodes), node2);
+        comp = new Voltage1n("g1", this.nodes[node1],node2, Number(0)); 
         this.components.push(comp);
         this.componentMap.set(comp.name, comp);
         this.nodes[node1].startComponents.push(comp);
-        this.nodes[node2].endComponents.push(comp);
+        node2.endComponents.push(comp);
 
         this._CreateComponentGroupings();
         

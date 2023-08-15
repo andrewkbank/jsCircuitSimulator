@@ -183,7 +183,7 @@ function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSi
     ctx.stroke();
 
     //Displays voltage across the resistor
-    ctx.fillText(voltageAcross.toFixed(3)+" V",0,height*3);
+    ctx.fillText(Math.abs(voltageAcross.toFixed(3))+" V",0,height*3);
     //Displays the resistance
     ctx.fillText(value, 0,-height*1.2  );
     ctx.restore();
@@ -765,18 +765,21 @@ class CircuitUI{
             this.components[i].render(ctx, this.componentWidth, compSimulationData);
         }
         if (this.showNodeVoltages){
+            //console.log(this.nodeMap);
             const keysArray = Array.from( this.nodeMap.keys() );
             for (let i=0; i<keysArray.length; i++){
                 const key = keysArray[i];
                 const name = this.nodeMap.get(key);
                 const point = new Point().fromHashCode(key);
                 const voltage = this.circuit.getNodeVoltage(String(name));
-                //console.log(10*voltage);
-                ctx.fillStyle=styleFromVoltage(voltage);
-                //console.log(ctx.fillStyle);
-                ctx.beginPath();
-                ctx.fillText(voltage.toPrecision(3), point.x+5, point.y-5,);
-                ctx.closePath();
+                if(voltage!=undefined){
+                    //console.log(10*voltage);
+                    ctx.fillStyle=styleFromVoltage(voltage);
+                    //console.log(ctx.fillStyle);
+                    ctx.beginPath();
+                    ctx.fillText(voltage.toPrecision(3), point.x+5, point.y-5,);
+                    ctx.closePath();
+                }
             }
         }
         this._renderButtons();
@@ -1116,14 +1119,25 @@ class CircuitUI{
                         else{this.increaseResistorsButton.backgroundColor="lime";}
                         break;
                     case this.decreaseNodesButton: 
-                        if(this.numNodes>2){this.numNodes--;}
+                        if(this.numNodes>2){
+                            this.numNodes--;
+                            this.increaseResistorsButton.backgroundColor="grey";
+                            this.decreaseNodesButton.backgroundColor="grey";
+                        }
                         break;
                     case this.increaseResistorsButton: 
                         this.numResistors++;
                         this.increaseResistorsButton.backgroundColor="grey";
+                        this.decreaseNodesButton.backgroundColor="grey";
                         break;
                     case this.decreaseResistorsButton: 
-                        if(this.numResistors>1){this.numResistors--;}
+                        if(this.numResistors>1){
+                            if(this.numNodes<=this.numResistors){
+                                this.numResistors--;
+                            }else{
+                                this.decreaseNodesButton.backgroundColor="lime";
+                            }
+                        }
                         break;
 
                 }
@@ -1357,7 +1371,7 @@ class CircuitUI{
 
             s += c.type+","+c.name+","+c.startNodeName+","+c.endNodeName+","+c.value+",";
         }
-        console.log(s);
+        //console.log(s);
         return s;
     }
     _resetSimulation(){
@@ -1586,7 +1600,7 @@ class CircuitUI{
             //in the case of 1-node voltages or ground, one of the points will be undefined:
             if(point1===undefined){point1=new Point(point2.x,point2.y); point1.addi(0,50);}
             if(point2===undefined){point2=new Point(point1.x,point1.y); point2.addi(0,50);}
-            c = new UIComponent(type,point1 ,point2 , value1, name);
+            c = new UIComponent(type, point1 ,point2 , value1, name);
             //console.log(c);
             this._addComponent(c);
             if(duplicateEdges.get(i)!=null){
@@ -1598,6 +1612,11 @@ class CircuitUI{
                 this._addComponent(c);
             }
         }
+
+        //I think this is the only way to get nodeMap to work
+        //todo: refactor _getCircuitText so that generating the nodeMap is its own method
+        this._getCircuitText();
+
     }
 }
 
