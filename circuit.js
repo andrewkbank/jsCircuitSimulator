@@ -11,6 +11,17 @@ function copy(array){
     return newArray;
 }
 
+//stolen from developer.mozilla.org + not
+function getRandomIntInclusive(min, max, not=-1) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    let result = Math.floor(Math.random() * (max - min + 1) + min);
+    while(result==not){
+        result = Math.floor(Math.random() * (max - min + 1) + min);
+    }
+    return result; // The maximum is inclusive and the minimum is inclusive
+}
+
 class Node {
     constructor(name = 'any', number = 0) {
         this.name = name;
@@ -50,7 +61,13 @@ class Component {
         this.currentHistory = [];
     }
     setValue(value) {
-        console.error("this compoinent.setValue not implemented");
+        console.error("this component.setValue not implemented");
+    }
+    getValue(){
+        console.error("this component.getValue not implemented");
+    }
+    getType(){
+        console.error("this component.getType not implemented");
     }
     getVoltage(){   return this.voltage;    }
     getCurrent(){   return this.current;    }
@@ -64,6 +81,12 @@ class Resistor extends Component {
         if (isNaN(value)) { return; }
         this.resistance = value;
     }
+    getValue(){
+        return this.resistance;
+    }
+    getType(){
+        return "r";
+    }
 }
 class CurrentSource extends Component {
     constructor(name, startNode, endNode, current){
@@ -73,6 +96,12 @@ class CurrentSource extends Component {
     setValue(value){
         if (isNaN(value)) { return; }
         this.current = value;
+    }
+    getValue(){
+        return this.current;
+    }
+    getType(){
+        return "i";
     }
 }
 class Inductor extends CurrentSource {
@@ -85,6 +114,12 @@ class Inductor extends CurrentSource {
         if (isNaN(value)) { return; }
         this.inductance = value;
     }
+    getValue(){
+        return this.inductance;
+    }
+    getType(){
+        return "l"
+    }
 }
 
 class VoltageSource extends Component {
@@ -95,6 +130,12 @@ class VoltageSource extends Component {
     setValue(value){
         if (isNaN(value)) { return; }
         this.voltage = value;
+    }
+    getValue(){
+        return this.voltage;
+    }
+    getType(){
+        return "v"
     }
 }
 
@@ -115,6 +156,12 @@ class Capacitor extends Voltage2n {
         if (isNaN(value)) { return; }
         this.capacitance = value;
     }
+    getValue(){
+        return this.capacitance;
+    }
+    getType(){
+        return "c";
+    }
 }
 
 class Diode extends Resistor {
@@ -128,6 +175,12 @@ class Diode extends Resistor {
     setValue(value){
         if (isNaN(value)) { return; }
         this.thresholdVoltage = thresholdVoltage;
+    }
+    getValue(){
+        return this.thresholdVoltage;
+    }
+    getType(){
+        return "d";
     }
     getVoltage(){   return this.avgVoltage; }
     getCurrent(){   return this.avgCurrent; }
@@ -263,6 +316,64 @@ class Circuit{
         this._LoadFromString(circuitString);
         this._CreateComponentGroupings();
         //this._MapComponentsAndNodes();
+    }
+    randomize(numNodes=2,numComponents=1){
+        this.nodes = [];
+        this.components = [];
+        this.nodeMap = new Map();          //nodeMap allows for us to quickly search for nodes by name;
+            //maps string name to node object
+        this.componentMap = new Map();
+
+        //make nodes
+        for(let i = 0; i<numNodes; ++i){
+            let node = new Node(i, i);
+            this.nodes.push(node);
+            this.nodeMap.set(i, node);
+        }
+
+        //make components:
+
+        //first, make sure that every node has a resistor that goes to it
+        let nodeChecklist = [];
+        let resistorsGenerated=0;
+        for(let i=0;i<numNodes;++i){nodeChecklist.push(false);}
+        for(let i = 0 ;i<numNodes; ++i){
+            if(nodeChecklist[i]){ continue;}
+            let node2=getRandomIntInclusive(0,numNodes-1,i);
+            let comp = new Resistor(("r"+resistorsGenerated), this.nodes[i], this.nodes[node2], Number(getRandomIntInclusive(0,200)*50));
+            this.components.push(comp);
+            this.componentMap.set(comp.name, comp);
+            this.nodes[i].startComponents.push(comp);
+            this.nodes[node2].endComponents.push(comp);
+            nodeChecklist[i]=true;
+            nodeChecklist[node2]=true;
+            ++resistorsGenerated;
+        }
+
+        //then, randomly generate the rest of the resistors
+        while(resistorsGenerated<numComponents){
+            let node1=getRandomIntInclusive(0,numNodes-1);
+            let node2=getRandomIntInclusive(0,numNodes-1,node1);
+            let comp = new Resistor(("r"+resistorsGenerated), this.nodes[node1], this.nodes[node2], Number(getRandomIntInclusive(0,200)*50));
+            this.components.push(comp);
+            this.componentMap.set(comp.name, comp);
+            this.nodes[node1].startComponents.push(comp);
+            this.nodes[node2].endComponents.push(comp);
+            ++resistorsGenerated
+        }
+
+        //generate the voltage source
+        let node1=getRandomIntInclusive(0,numNodes-1);
+        let node2=getRandomIntInclusive(0,numNodes-1,node1);
+        let comp = new Voltage2n(("v1"), this.nodes[node1], this.nodes[node2], Number(getRandomIntInclusive(0,20)));
+        this.components.push(comp);
+        this.componentMap.set(comp.name, comp);
+        this.nodes[node1].startComponents.push(comp);
+        this.nodes[node2].endComponents.push(comp);
+
+        this._CreateComponentGroupings();
+        
+        this.setCircuitText();
     }
     _LoadFromString(string) {
         this.nodes = [];
@@ -695,4 +806,12 @@ class Circuit{
         //what we want is to return a map that maps key=node or component name to value=node or component voltage
     }
     getCircuitText(){ return this.circuitText;  }
+    setCircuitText(){
+        this.circuitText="";
+        for(let i=0;i<this.components.length;++i){
+            const c = this.components[i];
+            this.circuitText+=c.getType()+","+c.name+","+c.startNode.name+","+c.endNode.name+","+c.getValue()+",";
+        }
+        //console.log(this.circuitText);
+    }
 }

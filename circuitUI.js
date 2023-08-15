@@ -386,7 +386,7 @@ function renderDiode(ctx, componentWidth, startPoint, endPoint, value){
 
     ctx.closePath();
 }
-
+  
 
 //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString,
 class UIComponent{
@@ -540,6 +540,7 @@ class UIButton{
         ctx.fillStyle = tempFillStyle;
     }
     redirectToWebsite(){
+        console.log("redirecting");
         //window.location.href = this.websiteURL;   //this one makes the current tab the instructions url
         window.open(this.websiteURL,'_blank');      //this one opens a new tab for the instructions url
     }
@@ -646,6 +647,9 @@ class CircuitUI{
     constructor(htmlCanvasElement, circuit=null){
         //Circuit stuff
         this.components = [];
+        this.numNodes=2;
+        this.numResistors=1;
+        //add more circuit randomization parameters here
 
         //Canvas
         this.htmlCanvasElement = htmlCanvasElement;
@@ -668,8 +672,22 @@ class CircuitUI{
         this.resetSimulationButton = new UIButton( "Reset Simulation", new Point(10,10), new Point(150,30));
         this.increasePlotTimeScaleButton = new UIButton( "+Time", new Point(), new Point(50,30) );
         this.decreasePlotTimeScaleButton = new UIButton( "-Time", new Point(), new Point(50,30) );
-        this.redirectButton = new UIButton("How to use simulation", new Point(500,10), new Point(600,30),"https://docs.google.com/document/d/1Zo0ypoeOjzJ9L55SJJ1NKIb5JLhesanlvxz-toZ5qQY/edit?usp=sharing");
-        this.buttons = [this.plotComponentButton, this.toggleSimulationRunButton, this.resetSimulationButton,this.redirectButton];
+        this.redirectButton = new UIButton("How to use simulation", new Point(1000,10), new Point(150,30),"https://docs.google.com/document/d/1Zo0ypoeOjzJ9L55SJJ1NKIb5JLhesanlvxz-toZ5qQY/edit?usp=sharing");
+        this.randomizeButton = new UIButton("Randomize",new Point(800,10),new Point(150,30),"","green");
+        this.increaseNodesButton = new UIButton("/\\",new Point(600,10),new Point(20,15));
+        this.decreaseNodesButton = new UIButton("\\/",new Point(600,25),new Point(20,15));
+        this.increaseResistorsButton = new UIButton("/\\",new Point(750,10),new Point(20,15));
+        this.decreaseResistorsButton = new UIButton("\\/",new Point(750,25),new Point(20,15));
+        this.buttons = [
+            this.plotComponentButton, 
+            this.toggleSimulationRunButton, 
+            this.resetSimulationButton,
+            this.randomizeButton,
+            this.redirectButton,
+            this.increaseNodesButton,
+            this.decreaseNodesButton,
+            this.increaseResistorsButton,
+            this.decreaseResistorsButton];
         
         //Circuit related variables
         if(circuit==null){
@@ -718,6 +736,10 @@ class CircuitUI{
         ctx.fillStyle = "black";
         ctx.textAlign = "left";
         ctx.fillText("t = " + this.circuit.getCurrentTime().toPrecision(5) + "s", 10, 60);
+        ctx.fillText("Nodes:",525,20);
+        ctx.fillText(this.numNodes,540,40);
+        ctx.fillText("Resistors:",660,20);
+        ctx.fillText(this.numResistors,675,40);
         
         //Set Default Colors
         ctx.fillStyle = this.defaultStrokeColor;
@@ -775,8 +797,6 @@ class CircuitUI{
             this.toggleSimulationRunButton.backgroundColor = falseColor;
             this.toggleSimulationRunButton.highlightColor = falseColorHighlight;
         }
-        this.toggleSimulationRunButton.render(this.ctx, this.mousePos);
-
 
         //Reset Simulation Button
         if (this.editedCircuit == true){
@@ -786,7 +806,6 @@ class CircuitUI{
             this.resetSimulationButton.backgroundColor = trueColor;
             this.resetSimulationButton.highlightColor = trueColorHighlight;
         }
-        this.resetSimulationButton.render(this.ctx, this.mousePos);
 
         //Plot component button
         if (this.selectedComponent != null){
@@ -804,9 +823,9 @@ class CircuitUI{
             this.plotComponentButton.backgroundColor = disableColor;
             this.plotComponentButton.highlightColor = disableColor;
         }
-        this.plotComponentButton.render(this.ctx, this.mousePos);
-
-        this.redirectButton.render(this.ctx,this.mousePos);
+        for(let i = 0; i<this.buttons.length;++i){
+            this.buttons[i].render(this.ctx,this.mousePos);
+        }
     }
     _renderPlots(){
         if (this.plots.length < 1) { return; }
@@ -1073,6 +1092,7 @@ class CircuitUI{
                 return;
             }
             if ( event.type == "mousedown" && buttonOver != null){ // a UIbutton was clicked
+                //console.log("button pressed: ",buttonOver);
                 switch(buttonOver){           //plotComponentButtonClicked
                     case this.plotComponentButton: this._addPlot(this.selectedComponent); break;
                     case this.toggleSimulationRunButton:
@@ -1086,6 +1106,26 @@ class CircuitUI{
                         break;
                     case this.resetSimulationButton: this._resetSimulation(); break;
                     case this.redirectButton: this.redirectButton.redirectToWebsite(); break;
+                    case this.randomizeButton: 
+                        this.circuit.randomize(this.numNodes,this.numResistors); 
+                        //console.log(this.circuit.getCircuitText());
+                        this.loadFromCircuitText(this.circuit.getCircuitText());
+                        break;
+                    case this.increaseNodesButton: 
+                        if(this.numNodes<=this.numResistors){this.numNodes++;}
+                        else{this.increaseResistorsButton.backgroundColor="lime";}
+                        break;
+                    case this.decreaseNodesButton: 
+                        if(this.numNodes>2){this.numNodes--;}
+                        break;
+                    case this.increaseResistorsButton: 
+                        this.numResistors++;
+                        this.increaseResistorsButton.backgroundColor="grey";
+                        break;
+                    case this.decreaseResistorsButton: 
+                        if(this.numResistors>1){this.numResistors--;}
+                        break;
+
                 }
                 return;
             }
@@ -1206,11 +1246,6 @@ class CircuitUI{
         })
     }
 
-    //Note: loadFromSave, _getCircuitText, and resetSimulation suck
-    //Replace with Circuit-centralized system, not a text-based system
-    //ie: generate visual components from the stored Circuit instance
-    //worry about circuit editing later...
-
     ///*
     loadFromSave(saveText = ""){
         saveText.replace(" ", "");
@@ -1329,7 +1364,19 @@ class CircuitUI{
         this.circuit = new Circuit(this._getCircuitText()); 
         this.editedCircuit = false;
     }
+    _resetVisualComponents(){
+        this.components = [];
+        this.plots = [];
+        this.nodeMap = new Map();
+        this.editedCircuit = true;    //so we know when we need to update the circuit
+        this.run = false;
+        this.numCalculationsPerRender = 1000;
+
+        this.userState = 'idle'; //for determining what user input pattern is currently happening
+    }
+    //this is a big fat method that works (mostly) but needs to be refactored 
     loadFromCircuitText(circuitText = ""){
+        this._resetVisualComponents();
         let nodes = [];                 //the int names of the nodes
         let nodeMap = new Map();        //nodeMap allows for us to quickly search for nodes by name;
         let points = [];                //the Point locations of each node on the UI
@@ -1540,7 +1587,7 @@ class CircuitUI{
             if(point1===undefined){point1=new Point(point2.x,point2.y); point1.addi(0,50);}
             if(point2===undefined){point2=new Point(point1.x,point1.y); point2.addi(0,50);}
             c = new UIComponent(type,point1 ,point2 , value1, name);
-            console.log(c);
+            //console.log(c);
             this._addComponent(c);
             if(duplicateEdges.get(i)!=null){
                 let node1Name2 = list[i+2];
@@ -1556,8 +1603,9 @@ class CircuitUI{
 
 
 
-circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,0,1000,r,r836,2,0,1000,");
-//circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,4,1000,r,r836,4,0,2000,r,r69,4,5,3000,r,r68,5,0,4000,");
+//let circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,0,1000,r,r836,2,0,1000,");
+//let circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,4,1000,r,r836,4,0,2000,r,r69,4,5,3000,r,r68,5,0,4000,");
+let circuit = new Circuit();
 const htmlCanvasElement = document.getElementById("circuitCanvas");
 const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
