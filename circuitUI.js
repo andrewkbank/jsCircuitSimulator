@@ -68,11 +68,11 @@ class Point {
         this.y=slope1 * this.x + yIntercept1;
     }
     getHashCode(){
-        return this.x*1000000 + this.y;
+        return this.x*10000 + this.y;
     }
     fromHashCode(hash, roundTo=1){
-        this.x = Math.round((hash/1000000)/roundTo)*roundTo;
-        this.y = Math.round((hash - this.x*1000000)/roundTo)*roundTo;
+        this.x = hash/10000;
+        this.y = hash%10000;
         return this;
     }
 
@@ -307,7 +307,7 @@ function renderVoltage2n(ctx, componentWidth, startPoint, endPoint, value){
     ctx.textAlign = "center";
     ctx.save();
     ctx.translate((startPoint.x+endPoint.x)/2, (startPoint.y+endPoint.y)/2);
-    ctx.rotate(rotAngle);
+    ctx.rotate(angle);
 
     const width = componentWidth/3;
     ctx.moveTo(-length/2, 0);
@@ -323,9 +323,12 @@ function renderVoltage2n(ctx, componentWidth, startPoint, endPoint, value){
 
     ctx.stroke();
 
+    //voltage value (make sure it isn't upside down)
+    ctx.rotate(rotAngle-angle);
     ctx.fillText(value, 0,-componentWidth*1.1  );
     ctx.restore();
 
+    //what is this rectangle?
     let w = componentWidth/4;
     ctx.fillRect(startPoint.x-w, startPoint.y-w, 2*w,2*w)
     ctx.fillRect(endPoint.x-w, endPoint.y-w, 2*w,2*w)
@@ -773,7 +776,7 @@ class CircuitUI{
                 const point = new Point().fromHashCode(key);
                 const voltage = this.circuit.getNodeVoltage(String(name));
                 if(voltage!=undefined){
-                    //console.log(10*voltage);
+                    //console.log(voltage,key,point);
                     ctx.fillStyle=styleFromVoltage(voltage);
                     //console.log(ctx.fillStyle);
                     ctx.beginPath();
@@ -1294,7 +1297,6 @@ class CircuitUI{
     _getCircuitText(){
         //this function is used to convert the UI circuit into a text string the Circuit() class can understand and simulate.
         this.nodeMap = new Map(); //maps position on screen (point.getHashCode()) to node name
-        //Andrew's note: where is this.nodeMap set??
 
         this.nodes = [];
         const nodeMap = this.nodeMap;
@@ -1371,7 +1373,7 @@ class CircuitUI{
 
             s += c.type+","+c.name+","+c.startNodeName+","+c.endNodeName+","+c.value+",";
         }
-        //console.log(s);
+        console.log(s);
         return s;
     }
     _resetSimulation(){
