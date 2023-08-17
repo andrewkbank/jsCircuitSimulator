@@ -68,7 +68,7 @@ class Point {
         this.y=slope1 * this.x + yIntercept1;
     }
     getHashCode(){
-        return this.x*10000 + this.y;
+        return Math.floor(this.x)*10000 + this.y;
     }
     fromHashCode(hash, roundTo=1){
         this.x = hash/10000;
@@ -1108,6 +1108,15 @@ class CircuitUI{
                         } else {
                             this.run = true;
                             this.toggleSimulationRunButton.text = "Stop Simulation";
+                            //console.log(this.nodeMap);
+                            const keysArray = Array.from( this.nodeMap.keys() );
+                            for (let i=0; i<keysArray.length; i++){
+                                const key = keysArray[i];
+                                const name = this.nodeMap.get(key);
+                                const point = new Point().fromHashCode(key);
+                                //console.log(point,key);
+                                //console.log("voltage: ",this.circuit.getNodeVoltage(String(name)));
+                            }
                         }
                         break;
                     case this.resetSimulationButton: this._resetSimulation(); break;
@@ -1318,6 +1327,7 @@ class CircuitUI{
                 nodeMap.set(c.endPoint.getHashCode(), sn);
             } else {                //Case 4: both are not null - take the smallest node, and set all of the larger ones to it.
                 //both are not null;
+                //something here is wrong...
                 if (sn == en){
                     //do nothing..?
                 } else {
@@ -1346,7 +1356,6 @@ class CircuitUI{
         for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
             if (c.type == "w" || c.type == "wire") { continue; }
-
             //get sn name from map. if null, create new node. after, set c.startNodeName to the node value; repeat for endnode
             let sn = nodeMap.get(c.startPoint.getHashCode());
             if (sn == null){
@@ -1373,7 +1382,7 @@ class CircuitUI{
 
             s += c.type+","+c.name+","+c.startNodeName+","+c.endNodeName+","+c.value+",";
         }
-        console.log(s);
+        //console.log(s);
         return s;
     }
     _resetSimulation(){
