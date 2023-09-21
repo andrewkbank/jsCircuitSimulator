@@ -956,7 +956,8 @@ class CircuitUI{
         return null;
     }
 
-    _addComponent(c){   this.components.push(c);    }
+    //why does this function exist
+    //_addComponent(c){   this.components.push(c);    }
 
     _deleteComponent(component = null){
         if (component == null){ component = this.selectedComponent; }
@@ -1081,7 +1082,8 @@ class CircuitUI{
         // finishingEditingComponentValue
 
         //console.log(this.userState);
-        if (event.type == "keydown" && keyPressed == "p"){  console.log(this._getCircuitText());    }
+
+        if (event.type == "keydown" && keyPressed == "p"){  console.log(this.circuit.getCircuitText());    }
         if (event.type == "keydown" && keyPressed == "enter"){  /*this.circuit = new Circuit( this._getCircuitText() );*/ }
         if (event.type == "mousemove"){ //handle mouse cursor type (if over button or over component, change cursor style);
             if (componentOver != null) {    this.htmlCanvasElement.style.cursor="crosshair";
@@ -1243,7 +1245,7 @@ class CircuitUI{
         if (this.userState == "creatingComponent"){
             if (event.type == 'mousedown'){
                 this.selectedComponent = new UIComponent(this.componentTypeToDraw);
-                this._addComponent(this.selectedComponent);
+                this.components.push(this.selectedComponent);
                 this.selectedComponent.setStartPoint( this.mousePos.x, this.mousePos.y );
                 this.selectedComponent.setEndPoint( this.mousePos.x, this.mousePos.y );
                 this.userState = "movingComponent";
@@ -1289,7 +1291,7 @@ class CircuitUI{
                 c = new UIComponent(a[0], new Point(a[1], a[2]), new Point(a[3], a[4]), a[5], a[6]);    //a[6] is the given name
             }
 
-            if (c != null){ this._addComponent(c);  }
+            if (c != null){ this.components.push(c);  }
         }
         this._resetSimulation();    //calls new Circuit(this._getCircuitText()); 
     }
@@ -1308,42 +1310,41 @@ class CircuitUI{
         this.nodeMap = new Map(); //maps position on screen (point.getHashCode()) to node name
 
         this.nodes = [];
-        const nodeMap = this.nodeMap;
         let nodeOn = 0;
         //first, map all of the wire points to nodes.
         for (let i=0; i<this.components.length; i++){
             const c= this.components[i];
             if (!(c.type == "wire" || c.type == "w")) { continue; }
 
-            let sn = nodeMap.get(c.startPoint.getHashCode());
-            let en = nodeMap.get(c.endPoint.getHashCode());
+            let sn = this.nodeMap.get(c.startPoint.getHashCode());
+            let en = this.nodeMap.get(c.endPoint.getHashCode());
             if (sn == null && en == null){ //case 1: both are null - get next node name and set both points to it in the map
-                nodeMap.set(c.startPoint.getHashCode(), nodeOn);
-                nodeMap.set(c.endPoint.getHashCode(), nodeOn);
+                this.nodeMap.set(c.startPoint.getHashCode(), nodeOn);
+                this.nodeMap.set(c.endPoint.getHashCode(), nodeOn);
                 nodeOn += 1;
             } else if (sn == null && en != null){ //case 2 & 3: one is null: set null point to non-null point node.
-                nodeMap.set(c.startPoint.getHashCode(), en);
+                this.nodeMap.set(c.startPoint.getHashCode(), en);
             } else if (sn != null && en == null){
-                nodeMap.set(c.endPoint.getHashCode(), sn);
+                this.nodeMap.set(c.endPoint.getHashCode(), sn);
             } else {                //Case 4: both are not null - take the smallest node, and set all of the larger ones to it.
                 //both are not null;
                 //something here is wrong...
                 if (sn == en){
                     //do nothing..?
                 } else {
-                    const keysArray = Array.from( nodeMap.keys() );
+                    const keysArray = Array.from( this.nodeMap.keys() );
                     if (sn < en){
                         //convert all en to sn
                         for (let k=0; k<keysArray.length; k++){
-                            if (nodeMap.get(keysArray[k]) == en){
-                                nodeMap.set(keysArray[k], sn);
+                            if (this.nodeMap.get(keysArray[k]) == en){
+                                this.nodeMap.set(keysArray[k], sn);
                             }
                         }
                     } else {
                         //convert all sn to en
                         for (let k=0; k<keysArray.length; k++){
-                            if (nodeMap.get(keysArray[k]) == sn){
-                                nodeMap.set(keysArray[k], en);
+                            if (this.nodeMap.get(keysArray[k]) == sn){
+                                this.nodeMap.set(keysArray[k], en);
                             }
                         }
                     }
@@ -1357,20 +1358,20 @@ class CircuitUI{
             const c = this.components[i];
             if (c.type == "w" || c.type == "wire") { continue; }
             //get sn name from map. if null, create new node. after, set c.startNodeName to the node value; repeat for endnode
-            let sn = nodeMap.get(c.startPoint.getHashCode());
+            let sn = this.nodeMap.get(c.startPoint.getHashCode());
             if (sn == null){
-                nodeMap.set(c.startPoint.getHashCode(), nodeOn);
+                this.nodeMap.set(c.startPoint.getHashCode(), nodeOn);
                 nodeOn += 1;
             }
-            c.startNodeName = nodeMap.get(c.startPoint.getHashCode());
+            c.startNodeName = this.nodeMap.get(c.startPoint.getHashCode());
 
 
-            let en = nodeMap.get(c.endPoint.getHashCode());
+            let en = this.nodeMap.get(c.endPoint.getHashCode());
             if (en == null){
-                nodeMap.set(c.endPoint.getHashCode(), nodeOn);
+                this.nodeMap.set(c.endPoint.getHashCode(), nodeOn);
                 nodeOn += 1;
             }
-            c.endNodeName = nodeMap.get(c.endPoint.getHashCode());
+            c.endNodeName = this.nodeMap.get(c.endPoint.getHashCode());
 
         }
 
@@ -1386,7 +1387,8 @@ class CircuitUI{
         return s;
     }
     _resetSimulation(){
-        this.circuit = new Circuit(this._getCircuitText()); 
+        //this is meant to update the virtual circuit with any changes made to the UI Circuit
+        this.circuit = new Circuit(this._getCircuitText());
         this.editedCircuit = false;
     }
     _resetVisualComponents(){
@@ -1399,7 +1401,7 @@ class CircuitUI{
 
         this.userState = 'idle'; //for determining what user input pattern is currently happening
     }
-    //this is a big fat method that works (mostly) but needs to be refactored 
+    //todo: this is a big fat method that works (mostly) but needs to be refactored 
     loadFromCircuitText(circuitText = ""){
         this._resetVisualComponents();
         let nodes = [];                 //the int names of the nodes
@@ -1613,20 +1615,23 @@ class CircuitUI{
             if(point2===undefined){point2=new Point(point1.x,point1.y); point2.addi(0,50);}
             c = new UIComponent(type, point1 ,point2 , value1, name);
             //console.log(c);
-            this._addComponent(c);
+            //this._addComponent(c);
+            this.components.push(c);
             if(duplicateEdges.get(i)!=null){
                 let node1Name2 = list[i+2];
                 let node2Name2 = list[i+3];
                 c = new UIComponent("wire", point1, points[nodeMap.get(node2Name2)], 0, "");
-                this._addComponent(c);
+                //this._addComponent(c);
+                this.components.push(c);
                 c = new UIComponent("wire", points[nodeMap.get(node1Name2)], point2, 0, "");
-                this._addComponent(c);
+                //this._addComponent(c);
+                this.components.push(c);
             }
         }
 
         //I think this is the only way to get nodeMap to work
         //todo: refactor _getCircuitText so that generating the nodeMap is its own method
-        this._getCircuitText();
+        this._resetSimulation();
 
     }
 }
