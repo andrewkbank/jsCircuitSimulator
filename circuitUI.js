@@ -1408,7 +1408,6 @@ class CircuitUI{
         let nodeMap = new Map();        //nodeMap allows for us to quickly search for nodes by name;
         let points = [];                //the Point locations of each node on the UI
         let duplicateEdges = new Map(); //duplicateEdges makes sure that attraction doesn't go crazy for two nodes with several components between them
-        let duplicateEdgeMapsTo = new Map();    //stores the original two points that the duplicate edge would've had
         let numDuplicates = 0;          //stores the number of extra parallel edges
         let connectionsMap = new Map(); //stores node connections (to detect parallel edges)
 
@@ -1438,12 +1437,6 @@ class CircuitUI{
                 points.push(point1); //adds a point on the UI that is associated with the node
                 points.push(point2); //adds a point on the UI that is associated with the node
                 duplicateEdges.set(i,{newNode1,newNode2});
-                duplicateEdgeMapsTo.set(newNode1,{node1Name,node2Name});
-                //might have to swap node1Name and node2Name to make this work
-                let temp=node1Name;
-                node1Name=node2Name;
-                node2Name=temp;
-                duplicateEdgeMapsTo.set(newNode2,{node2Name,node1Name});
                 numDuplicates++;
             }else{
                 //add node1Name<->node2Name to connectionsMap
@@ -1559,16 +1552,38 @@ class CircuitUI{
                 forceY*=damping;
             }
             //put all parallel components on normal lines
-            for(let i=0;i<nodes.length;++i){
-                if(duplicateEdgeMapsTo.get(nodes[i])!=null){
-                    //console.log(i);
-                    //console.log(duplicateEdgeMapsTo.get(nodes[i]));
-                    let node1 = duplicateEdgeMapsTo.get(nodes[i]).node1Name;
-                    let node2 = duplicateEdgeMapsTo.get(nodes[i]).node2Name;
-                    //console.log(points[nodeMap.get(node1)],points[nodeMap.get(node2)]);
-                    points[i].lockTo(points[nodeMap.get(node2)],points[nodeMap.get(node1)]);
+            for (let j=0; j<list.length-4; j+=5) {
+                if(list[j]=="voltage1n"||list[j]=="v1n"||list[j]=="g"){continue;}
+                if(duplicateEdges.get(j)==null){continue;}
+                //the two nodes of the original
+                let node1Name = list[j+2];
+                let node2Name = list[j+3];
+                //console.log(points[nodeMap.get(node1Name)],points[nodeMap.get(node2Name)]);
+                //console.log(duplicateEdges.get(j));
+                let parallelNode1Name = duplicateEdges.get(j).newNode1;
+                let parallelNode2Name = duplicateEdges.get(j).newNode2;
+
+                points[nodeMap.get(parallelNode1Name)].lockTo(points[nodeMap.get(node2Name)],points[nodeMap.get(node1Name)]);
+                points[nodeMap.get(parallelNode2Name)].lockTo(points[nodeMap.get(node1Name)],points[nodeMap.get(node2Name)]);
+
+                //after locking, find which point is closer to its parallel node
+                //and lock the other point be the same distance (and displacement) from its parallel node
+                let dist1=points[nodeMap.get(parallelNode1Name)].distTo(points[nodeMap.get(node2Name)]);
+                let dist2=points[nodeMap.get(parallelNode2Name)].distTo(points[nodeMap.get(node1Name)]);
+                
+                let displacementX;
+                let displacementY;
+                if(dist1>dist2){
+                    displacementX=points[nodeMap.get(parallelNode2Name)].dx(points[nodeMap.get(node1Name)]);
+                    displacementY=points[nodeMap.get(parallelNode2Name)].dy(points[nodeMap.get(node1Name)]);
+                    points[nodeMap.get(parallelNode1Name)]=points[nodeMap.get(node2Name)].add(displacementX,displacementY);
+                }else{
+                    displacementX=points[nodeMap.get(parallelNode1Name)].dx(points[nodeMap.get(node2Name)]);
+                    displacementY=points[nodeMap.get(parallelNode1Name)].dy(points[nodeMap.get(node2Name)]);
+                    points[nodeMap.get(parallelNode2Name)]=points[nodeMap.get(node1Name)].add(displacementX,displacementY)
                 }
             }
+            
         }
         //normalize the points
         let maxX=-1*Number.MAX_VALUE;
