@@ -6,9 +6,9 @@ class Point {
         this.y = Number(y);
     }
     roundTo(val = 10){
-        this.x = Math.round(this.x/val)*val;
-        this.y = Math.round(this.y/val)*val;
-        return this;
+        let x = Math.round(this.x/val)*val;
+        let y = Math.round(this.y/val)*val;
+        return new Point(x,y);
     }
     add(x,y=0){
         if (x instanceof Point) {
@@ -775,7 +775,7 @@ class CircuitUI{
                 const name = this.nodeMap.get(key);
                 const point = new Point().fromHashCode(key);
                 const voltage = this.circuit.getNodeVoltage(String(name));
-                if(voltage!=undefined){
+                if(voltage!=undefined&&!isNaN(voltage)){
                     //console.log(voltage,key,point);
                     ctx.fillStyle=styleFromVoltage(voltage);
                     //console.log(ctx.fillStyle);
@@ -912,21 +912,34 @@ class CircuitUI{
 
         for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
-            //console.log(this.mousePos)
+
+            const nodalVoltageStartPoint=c.startPoint.add(10,-15);
+            const nodalVoltageEndPoint=c.endPoint.add(10,-15);
+
+            //console.log(this.mousePos,c.startPoint,c.endPoint);
             const distToLine = this.__pointToLineSegmentDistance(this.mousePos, c.startPoint, c.endPoint);
-            const distToStartPoint = this.mousePos.distTo(c.startPoint);
-            const distToEndPoint = this.mousePos.distTo(c.endPoint);
+            const distToStartPoint = Math.min(this.mousePos.distTo(c.startPoint),this.mousePos.distTo(nodalVoltageStartPoint));
+            const distToEndPoint = Math.min(this.mousePos.distTo(c.endPoint),this.mousePos.distTo(nodalVoltageEndPoint));
 
-            //console.log(distToLine);
-
-            if (distToLine < closestDist){
-                closestComp = c;
-                closestDist = distToLine;
+            //console.log(distToLine,distToStartPoint,distToEndPoint);
+            if(distToLine<closestDist){
                 if (distToLine < distToStartPoint-this.selectDistance && distToLine < distToEndPoint-this.selectDistance){
+                    closestDist = distToLine;
+                    closestComp = c;
                     segment = "line";
-                } else if (distToStartPoint < distToEndPoint){
+                }
+            }
+            if (distToStartPoint < closestDist){
+                closestDist = distToStartPoint;
+                if(distToStartPoint<this.selectDistance){
+                    closestComp = c;
                     segment = "startPoint";
-                } else {
+                }
+            }
+            if (distToEndPoint<closestDist){
+                closestDist = distToEndPoint;
+                if(distToEndPoint<this.selectDistance){
+                    closestComp = c;
                     segment = "endPoint";
                 }
             }
@@ -1043,6 +1056,9 @@ class CircuitUI{
                 ret = this._getComponentAndSegmentClicked();
                 componentOver = ret.component;
                 componentOverSegment = ret.segment;
+                //if(componentOverSegment!=null){
+                //    console.log(componentOverSegment);
+                //}
                 buttonOver = this._getButtonAtPos(this.mousePos);
                 plotOver = this._getPlotAtPos(this.mousePos);
                 break;
@@ -1077,7 +1093,7 @@ class CircuitUI{
         /////Possible States
         // idle                 nothing currently happening
         // creatingComponent
-        // movingComonent
+        // movingComponent
         // editingComponentValue 
         // finishingEditingComponentValue
 
@@ -1200,6 +1216,8 @@ class CircuitUI{
                 if (this.movedSelectedComponent){   this.editedCircuit = true;  }
                 this.movedSelectedComponent = false;
                 this.userState = "idle";
+                //find some way to get the nodal voltages to move
+                this._getCircuitText();
             }
             
             //This is used to check if we actually moved the component, or just clicked it. If we just clicked it, then we didn't edit the circuit, thus the circuit was not edited.
@@ -1305,6 +1323,9 @@ class CircuitUI{
         return s;
     }
     */
+
+    //idk why, but resetting the nodeMap after the circuit already exists rounds every point to the nearest 10 on the nodeMap
+    //why doesn't it round the first time?
     _getCircuitText(){
         //this function is used to convert the UI circuit into a text string the Circuit() class can understand and simulate.
         this.nodeMap = new Map(); //maps position on screen (point.getHashCode()) to node name
@@ -1384,6 +1405,7 @@ class CircuitUI{
             s += c.type+","+c.name+","+c.startNodeName+","+c.endNodeName+","+c.value+",";
         }
         //console.log(s);
+        //console.log(this.nodeMap);
         return s;
     }
     _resetSimulation(){
@@ -1647,7 +1669,6 @@ class CircuitUI{
         //I think this is the only way to get nodeMap to work
         //todo: refactor _getCircuitText so that generating the nodeMap is its own method
         this._resetSimulation();
-
     }
 }
 
