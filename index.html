@@ -16,10 +16,14 @@
         <div style="font-weight: bold;"> Selected Comp:  </div>
         <div id="selectedCompDiv"></div>
     </div>
-
     <input id="simulationSpeedInput" type="range" min=0 value = 30 max=300 step=1 oninput=SimulationSpeedInputChange(event)>
+    <select id="menu">
+        <option value="">Select Circuit Analysis Method</option>
+    </select>
     <canvas id="circuitCanvas" style="width:95vw; height:95vh;"></canvas>
 </body>
+
+
 
 <script src="circuit.js"></script>
 <script src="circuitUI.js"></script>

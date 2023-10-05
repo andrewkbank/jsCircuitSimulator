@@ -142,10 +142,20 @@ function renderWire(ctx, componentWidth, startPoint, endPoint, value,){
 }
 
 function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSimulationData){
+    const startVoltage = compSimulationData.startNodeVoltage;
+    const endVoltage = compSimulationData.endNodeVoltage;
+    const currentAcross = compSimulationData.current;
     const angle = Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x);
     const length = Math.sqrt( Math.pow(endPoint.x-startPoint.x, 2) + Math.pow(endPoint.y-startPoint.y,2) );
     let rotAngle = angle;                
-                
+    
+    /*
+    //this is code that displays the nodal voltages. it isn't great here
+    if(!isNaN(startVoltage))
+        ctx.fillText(startVoltage.toFixed(3)+" V",startPoint.x,startPoint.y-10);
+    if(!isNaN(endVoltage))
+        ctx.fillText(endVoltage.toFixed(3)+" V",endPoint.x,endPoint.y-10);
+    */
     if (rotAngle < 0){  rotAngle += Math.PI*2;  }
     if (rotAngle < Math.PI/2 || rotAngle >= 3*Math.PI/2){   rotAngle = angle;
     } else {    rotAngle = angle+Math.PI;   }
@@ -155,8 +165,6 @@ function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSi
     ctx.save();
     ctx.translate((startPoint.x+endPoint.x)/2, (startPoint.y+endPoint.y)/2);
     ctx.rotate(rotAngle);
-    const voltageAcross = compSimulationData.voltage;
-    const currentAcross = compSimulationData.current;
     //console.log(sVoltage, eVoltage, avgVoltage, styleFromVoltage(sVoltage), styleFromVoltage(eVoltage));
 
     ctx.beginPath();
@@ -182,8 +190,11 @@ function renderResistor(ctx, componentWidth, startPoint, endPoint, value, compSi
     ctx.lineTo(length/2, 0); //other straight part
     ctx.stroke();
 
-    //Displays voltage across the resistor
-    ctx.fillText(Math.abs(voltageAcross.toFixed(3))+" V",0,height*3);
+    //Display current across the resistor
+    if(!isNaN(currentAcross))
+        ctx.fillText(Math.abs((currentAcross).toFixed(3))+" mA",0,height*3);
+    //might have to figure out a way besides multiplying by 1000 to display in mA
+
     //Displays the resistance
     ctx.fillText(value, 0,-height*1.2  );
     ctx.restore();
@@ -389,7 +400,38 @@ function renderDiode(ctx, componentWidth, startPoint, endPoint, value){
 
     ctx.closePath();
 }
-  
+
+function updateDropdown(n) {
+    var menu = document.getElementById("menu");
+    var ohmsLawOption = document.createElement("option");
+    var kirchhoffsLawsOption = document.createElement("option");
+    var nodalOption = document.createElement("option");
+    var meshOption = document.createElement("option");
+
+    ohmsLawOption.value = "Ohm";
+    ohmsLawOption.text = "Ohm's Law";
+    kirchhoffsLawsOption.value = "KVL/KCL";
+    kirchhoffsLawsOption.text = "Kirchhoff's Laws";
+    nodalOption.value = "Nodal";
+    nodalOption.text = "Nodal Analysis";
+    meshOption.value = "Mesh";
+    meshOption.text = "Mesh Analysis";
+
+    // Clear existing options
+    while (menu.options.length > 2) {
+      menu.remove(2);
+    }
+    
+    // Add options based on n
+    if (n === 2) {
+      menu.add(ohmsLawOption);
+    } else if (n === 3) {
+      menu.add(kirchhoffsLawsOption);
+    }
+    menu.add(nodalOption);
+    menu.add(meshOption);
+  }
+
 
 //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString,
 class UIComponent{
@@ -664,7 +706,6 @@ class CircuitUI{
         this.defaultStrokeWidth = 2;
         this.defaultFont = '15px sans-serif';
         this.componentWidth = 15;
-        this.showNodeVoltages = true;
 
         //Plot variables
         this.plots = [];
@@ -711,22 +752,39 @@ class CircuitUI{
         this.mousePosDelta = new Point();
         this.mouseIsDown = false;
 
+        //analysis stuff
+        this.completedComponents=[];
+        this.completedNodes=[];
+        this.analysisData={
+            voltage: 0, 
+            current: 0,
+            startNodeVoltage: 0,
+            endNodeVoltage: 0,
+            voltageHistory: [],
+            currentHistory: [],
+            resistance: 1,
+            inductance: 1, 
+            capacitance: 1,
+        };
+        this.userAnalysis=0;
+        this.analysisType="";
+
         //misc variables
         this.minimumStateRadius = 10;
         this.pressedKeys = new Map();
         this.selectDistance = 15;
 
+        updateDropdown(this.numNodes);
+
         this._setEventListeners(this);
         this.resize();
     }
     render() {
-        if (this.run == true ){
-            /*if (this.editedCircuit == true)
-            {
-                this.circuit = new Circuit( this._getCircuitText() );
-                this.editedCircuit = false;
-            }*/
+        if (this.run){
             this.circuit.Calculate(this.numCalculationsPerRender);
+            //if in user analysis, only calculate once (achieved by turning run off)
+            if(this.userState=="userAnalysis"){this.run=false}
+            //hopefully one calculate is enough
         }
 
         const ctx = this.ctx; //this.htmlCanvasElement.getContext('2d');
@@ -756,33 +814,68 @@ class CircuitUI{
             ctx.strokeStyle = color;
             ctx.fillStyle = color;
 
-            const compSimulationData = this.circuit.getComponentData(this.components[i].name);
+            let compSimulationData = this.circuit.getComponentData(this.components[i].name);
+            compSimulationData.current*=1000;
 
-            if (this.components[i] == this.selectedComponent){
+            if (this.components[i] == this.selectedComponent&&this.selectedComponentSegment!="endPoint"&&this.selectedComponentSegment!="startPoint"){
                 ctx.strokeStyle = highlightColor;
                 if (this.userState == "editingComponentValue"){
                     if (this.components[i].valueIsValid == true){   ctx.fillStyle = "green";
                     } else {    ctx.fillStyle = "red";  }
+                }else if (this.userState == "userAnalysis"){
+                    compSimulationData=this.analysisData;
+                    ctx.fillStyle = "blue";
+                }
+            }else if(this.userState == "userAnalysis"){
+                if(this.completedComponents.includes(this.components[i])){
+                    ctx.fillStyle = "black";
+                    ctx.strokeStype = "black";
+                }else{
+                    ctx.fillStyle = "red";
+                    ctx.strokeStyle = "red";
+                    //component hasn't been solved yet, so don't display the solved data yet
+                    compSimulationData={
+                        voltage: NaN, 
+                        current: NaN,
+                        startNodeVoltage: NaN,
+                        endNodeVoltage: NaN,
+                        voltageHistory: [],
+                        currentHistory: [],
+                        resistance: NaN,
+                        inductance: NaN, 
+                        capacitance: NaN,
+                    };                   
                 }
             }
             this.components[i].render(ctx, this.componentWidth, compSimulationData);
         }
-        if (this.showNodeVoltages){
-            //console.log(this.nodeMap);
-            const keysArray = Array.from( this.nodeMap.keys() );
-            for (let i=0; i<keysArray.length; i++){
-                const key = keysArray[i];
-                const name = this.nodeMap.get(key);
-                const point = new Point().fromHashCode(key);
-                const voltage = this.circuit.getNodeVoltage(String(name));
-                if(voltage!=undefined&&!isNaN(voltage)){
-                    //console.log(voltage,key,point);
-                    ctx.fillStyle=styleFromVoltage(voltage);
-                    //console.log(ctx.fillStyle);
-                    ctx.beginPath();
-                    ctx.fillText(voltage.toPrecision(3), point.x+5, point.y-5,);
-                    ctx.closePath();
+
+        //nodal voltage display
+        //console.log(this.nodeMap);
+        const keysArray = Array.from( this.nodeMap.keys() );
+        for (let i=0; i<keysArray.length; i++){
+            const key = keysArray[i];
+            const name = this.nodeMap.get(key);
+            const point = new Point().fromHashCode(key);
+            let voltage = this.circuit.getNodeVoltage(String(name));
+            ctx.fillStyle=styleFromVoltage(voltage);
+            if(this.userState=="userAnalysis"){
+                if(name==this._getSelectedNode()){
+                    ctx.fillStyle="blue";
+                    voltage=this.userAnalysis;
                 }
+            }
+            if(this.userState=="userAnalysis"&&!this.completedNodes.includes(name)&&name!=this._getSelectedNode()){
+                ctx.fillStyle="black";
+                ctx.beginPath();
+                ctx.fillText("?", point.x+5, point.y-5,);
+                ctx.closePath();
+            }else if(voltage!=undefined&&!isNaN(voltage)){
+                //console.log(voltage,key,point);
+                //console.log(ctx.fillStyle);
+                ctx.beginPath();
+                ctx.fillText(voltage.toPrecision(3), point.x+5, point.y-5,);
+                ctx.closePath();
             }
         }
         this._renderButtons();
@@ -1096,6 +1189,7 @@ class CircuitUI{
         // movingComponent
         // editingComponentValue 
         // finishingEditingComponentValue
+        // userAnalysis                takes user input for a component/nodal voltage or current
 
         //console.log(this.userState);
 
@@ -1120,20 +1214,18 @@ class CircuitUI{
                 switch(buttonOver){           //plotComponentButtonClicked
                     case this.plotComponentButton: this._addPlot(this.selectedComponent); break;
                     case this.toggleSimulationRunButton:
-                        if (this.run == true){
-                            this.run = false;
-                            this.toggleSimulationRunButton.text = "Run Simulation";
-                        } else {
-                            this.run = true;
-                            this.toggleSimulationRunButton.text = "Stop Simulation";
-                            //console.log(this.nodeMap);
-                            const keysArray = Array.from( this.nodeMap.keys() );
-                            for (let i=0; i<keysArray.length; i++){
-                                const key = keysArray[i];
-                                const name = this.nodeMap.get(key);
-                                const point = new Point().fromHashCode(key);
-                                //console.log(point,key);
-                                //console.log("voltage: ",this.circuit.getNodeVoltage(String(name)));
+                        if(this.circuit.getCircuitText()!=""){
+                            if (this.run == true){
+                                this.run = false;
+                                this.toggleSimulationRunButton.text = "Run Simulation";
+                            } else { 
+                                if(document.getElementById("menu").value==""){
+                                    this.run = true;
+                                    this.toggleSimulationRunButton.text = "Stop Simulation";
+                                } else{
+                                    //do step by step circuit analysis
+                                    this.circuitAnalysis();
+                                }
                             }
                         }
                         break;
@@ -1147,12 +1239,14 @@ class CircuitUI{
                     case this.increaseNodesButton: 
                         if(this.numNodes<=this.numResistors){this.numNodes++;}
                         else{this.increaseResistorsButton.backgroundColor="lime";}
+                        updateDropdown(this.numNodes);
                         break;
                     case this.decreaseNodesButton: 
                         if(this.numNodes>2){
                             this.numNodes--;
                             this.increaseResistorsButton.backgroundColor="grey";
                             this.decreaseNodesButton.backgroundColor="grey";
+                            updateDropdown(this.numNodes);
                         }
                         break;
                     case this.increaseResistorsButton: 
@@ -1223,14 +1317,14 @@ class CircuitUI{
             //This is used to check if we actually moved the component, or just clicked it. If we just clicked it, then we didn't edit the circuit, thus the circuit was not edited.
             if (event.type == "mousemove"){
                 this.movedSelectedComponent = true;
-            }
-            if (this.selectedComponentSegment == "startPoint"){
-                this.selectedComponent.startPoint = this.mousePos.copy();
-            } else if (this.selectedComponentSegment == "endPoint"){
-                this.selectedComponent.endPoint = this.mousePos.copy();
-            } else {
-                this.selectedComponent.startPoint.addi(this.mousePosDelta);
-                this.selectedComponent.endPoint.addi(this.mousePosDelta);
+                if (this.selectedComponentSegment == "startPoint"){
+                    this.selectedComponent.startPoint = this.mousePos.copy();
+                } else if (this.selectedComponentSegment == "endPoint"){
+                    this.selectedComponent.endPoint = this.mousePos.copy();
+                } else {
+                    this.selectedComponent.startPoint.addi(this.mousePosDelta);
+                    this.selectedComponent.endPoint.addi(this.mousePosDelta);
+                }
             }
         }
 
@@ -1258,6 +1352,80 @@ class CircuitUI{
             }
             this.userState = "idle";
             return;
+        }
+
+        if (this.userState == "userAnalysis"){
+            if (event.type == "dblclick" && componentOver != null){ //dbl click means editingComponentValue
+                //we don't want to be able to select non-resistor components (we can select their nodes tho)
+                if(componentOver.type=="r"||componentOver.type=="resistor"||componentOverSegment!="line"){
+                    this.selectedComponent = componentOver;
+                    this.selectedComponentSegment = componentOverSegment;
+                    //remember, this.selectedComponentSegment is either line, startPoint, or endPoint
+                    this._updateAnalysisData(); 
+                }
+            }else if (this.selectedComponent!=null){
+                if( (keyPressed == "escape" || event.type == "mousedown" || keyPressed == "enter")){
+                    //user deselects a component (they're done entering the value)
+                    console.log(this.selectedComponent,this.selectedComponentSegment);
+                    console.log(this.analysisData);
+                    ///*
+                    //the 4 methods
+                    if(this._enoughInfoToSolve()){
+                        if(this._checkCorrectness()){
+                            //user had enough info and was correct
+                            switch(this.selectedComponentSegment){  //mark the appropriate component/node as complete
+                                case "line":
+                                    this.completedComponents.push(this.selectedComponent);
+                                    break;
+                                case "startPoint":
+                                    this.completedNodes.push(this.selectedComponent.startNodeName);
+                                    break;
+                                case "endPoint":
+                                    this.completedNodes.push(this.selectedComponent.endNodeName);
+                                    break;
+                            }
+                            this._updateWires();
+                            if(this._circuitIsDone()){
+                                //circuit analysis is done
+                                this.userState="idle";
+                            }
+                        }else{
+                            //user had enough info, but was incorrect
+                            this._giveHints();
+                        }
+                    }else{
+                        //user didn't have enough info
+                        this._showMissingInfo();
+                    }
+                    //*/
+                    this.selectedComponent=null;
+                    this.userAnalysis=0;
+                    this.analysisData={
+                        voltage: NaN, 
+                        current: NaN,
+                        startNodeVoltage: NaN,
+                        endNodeVoltage: NaN,
+                        voltageHistory: [],
+                        currentHistory: [],
+                        resistance: NaN,
+                        inductance: NaN, 
+                        capacitance: NaN,
+                    };
+                }else if (event.type == "keydown"){
+                    if(keyPressed=="backspace"){
+                        let len = String(this.userAnalysis).length;
+                        this.userAnalysis = Number(String(this.userAnalysis).slice(0, len-1));
+                    } else if (keyPressed.length < 2){
+                        //gotta make sure the program doesn't crash if a non-number key is pressed
+                        if(!isNaN(Number(rawKeyPressed))){
+                            this.userAnalysis = Number(String(this.userAnalysis)+rawKeyPressed);
+                        }
+                        //decimals don't work rn
+                    }
+                    this._updateAnalysisData()
+                }
+            }
+            
         }
 
         if (this.userState == "creatingComponent"){
@@ -1313,19 +1481,7 @@ class CircuitUI{
         }
         this._resetSimulation();    //calls new Circuit(this._getCircuitText()); 
     }
-    /*
-    getSaveText(){
-        let s = "";
-        for (let i=0; i<this.components.length; i++)
-        {
-            s += this.components[i].toString();
-        }
-        return s;
-    }
-    */
 
-    //idk why, but resetting the nodeMap after the circuit already exists rounds every point to the nearest 10 on the nodeMap
-    //why doesn't it round the first time?
     _getCircuitText(){
         //this function is used to convert the UI circuit into a text string the Circuit() class can understand and simulate.
         this.nodeMap = new Map(); //maps position on screen (point.getHashCode()) to node name
@@ -1377,7 +1533,6 @@ class CircuitUI{
         //next, map all other component points to nodes.
         for (let i=0; i<this.components.length; i++){
             const c = this.components[i];
-            if (c.type == "w" || c.type == "wire") { continue; }
             //get sn name from map. if null, create new node. after, set c.startNodeName to the node value; repeat for endnode
             let sn = this.nodeMap.get(c.startPoint.getHashCode());
             if (sn == null){
@@ -1669,6 +1824,99 @@ class CircuitUI{
         //I think this is the only way to get nodeMap to work
         //todo: refactor _getCircuitText so that generating the nodeMap is its own method
         this._resetSimulation();
+    }
+
+    circuitAnalysis(){
+        //clear all analysis variables
+        this.completedComponents=[];
+        this.completedNodes=[];
+        this.analysisData={
+            voltage: NaN, 
+            current: NaN,
+            startNodeVoltage: NaN,
+            endNodeVoltage: NaN,
+            voltageHistory: [],
+            currentHistory: [],
+            resistance: NaN,
+            inductance: NaN, 
+            capacitance: NaN,
+        };
+        this.userAnalysis=0;
+        this.selectedComponent=null;
+
+        this.analysisType=document.getElementById("menu").value;
+        //all grounds and voltage sources are treated as pre-solved
+        for (let i=0; i<this.components.length; i++){
+            if(this.components[i].type=="V"||this.components[i].type=="v1n"||this.components[i].type=="voltage1n"||this.components[i].type=="g"){
+                this.completedComponents.push(this.components[i]);
+                this.completedNodes.push(this.components[i].startNodeName);
+                this.completedNodes.push(this.components[i].endNodeName);
+            }
+            if(this.components[i].type=="v"||this.components[i].type=="v2n"||this.components[i].type=="voltage2n"){
+                this.completedComponents.push(this.components[i]);
+            }
+        }
+        this._updateWires();
+        this.userState="userAnalysis"
+        //run the simulator so we can compare the user inputs to the simulated data
+        this.run = true;
+    }
+
+    _updateAnalysisData(){
+        //this.userAnalysis is user text entry, and we just have to assign it to either a node or a component
+        if(this.selectedComponentSegment=="line"){
+            this.analysisData.current=this.userAnalysis;
+        }else if(this.selectedComponentSegment=="startPoint"){
+            this.analysisData.startNodeVoltage=this.userAnalysis;
+        }else if(this.selectedComponentSegment=="endPoint"){
+            this.analysisData.endNodeVoltage=this.userAnalysis;
+        }else{
+            console.log(this.selectedComponent,this.selectedComponentSegment);
+            console.log("fuck");
+        }
+    }
+    _getSelectedNode(){
+        //returns which node is selected in user analysis (if any)
+        let selectedNode="-69";
+        if(this.selectedComponent!=null){
+            if(this.selectedComponentSegment=="startPoint"){
+                selectedNode=this.selectedComponent.startNodeName;
+            }else if(this.selectedComponentSegment=="endPoint"){
+                selectedNode=this.selectedComponent.endNodeName;
+            }
+        }
+        return selectedNode;
+    }
+    _updateWires(){
+        //in user analysis, wires should be complete whenever their respective node is complete
+        for (let i=0; i<this.components.length; i++){
+            if((this.components[i].type=="w"||this.components[i].type=="wire")&&this.completedNodes.includes(this.components[i].startNodeName)){
+                    this.completedComponents.push(this.components[i]);
+            }
+        }
+    }
+    _enoughInfoToSolve(){
+        return true;
+    }
+    _checkCorrectness(){
+        return true;
+    }
+    _showMissingInfo(){
+
+    }
+    _giveHints(){
+
+    }
+    _circuitIsDone(){
+        for(let i=0; i<this.components.length; i++){
+            if(!this.completedComponents.includes(this.components[i])){
+                return false;
+            }
+            if(!this.completedNodes.includes(this.components[i].startNodeName)||!this.completedNodes.includes(this.components[i].endNodeName)){
+                return false;
+            }
+        }
+        return true;
     }
 }
 
