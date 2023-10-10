@@ -432,6 +432,9 @@ function updateDropdown(n) {
     menu.add(meshOption);
   }
 
+  function isBetween(i, j, k) {
+    return (i >= j && i <= k) || (i >= k && i <= j);
+  }
 
 //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString,
 class UIComponent{
@@ -766,7 +769,7 @@ class CircuitUI{
             inductance: 1, 
             capacitance: 1,
         };
-        this.userAnalysis=0;
+        this.userAnalysis="";
         this.analysisType="";
 
         //misc variables
@@ -862,7 +865,7 @@ class CircuitUI{
             if(this.userState=="userAnalysis"){
                 if(name==this._getSelectedNode()){
                     ctx.fillStyle="blue";
-                    voltage=this.userAnalysis;
+                    voltage=Number(this.userAnalysis);
                 }
             }
             if(this.userState=="userAnalysis"&&!this.completedNodes.includes(name)&&name!=this._getSelectedNode()){
@@ -1366,8 +1369,9 @@ class CircuitUI{
             }else if (this.selectedComponent!=null){
                 if( (keyPressed == "escape" || event.type == "mousedown" || keyPressed == "enter")){
                     //user deselects a component (they're done entering the value)
-                    console.log(this.selectedComponent,this.selectedComponentSegment);
-                    console.log(this.analysisData);
+                    //console.log(this.selectedComponent,this.selectedComponentSegment);
+                    //console.log(this.analysisData);
+                    //console.log(this.userAnalysis);
                     ///*
                     //the 4 methods
                     if(this._enoughInfoToSolve()){
@@ -1399,7 +1403,7 @@ class CircuitUI{
                     }
                     //*/
                     this.selectedComponent=null;
-                    this.userAnalysis=0;
+                    this.userAnalysis="";
                     this.analysisData={
                         voltage: NaN, 
                         current: NaN,
@@ -1414,13 +1418,12 @@ class CircuitUI{
                 }else if (event.type == "keydown"){
                     if(keyPressed=="backspace"){
                         let len = String(this.userAnalysis).length;
-                        this.userAnalysis = Number(String(this.userAnalysis).slice(0, len-1));
+                        this.userAnalysis = String(this.userAnalysis).slice(0, len-1);
                     } else if (keyPressed.length < 2){
-                        //gotta make sure the program doesn't crash if a non-number key is pressed
-                        if(!isNaN(Number(rawKeyPressed))){
-                            this.userAnalysis = Number(String(this.userAnalysis)+rawKeyPressed);
-                        }
-                        //decimals don't work rn
+                        //gotta make sure the program doesn't crash if a non-number is entered
+                        //if(!isNaN(Number(rawKeyPressed))){
+                            this.userAnalysis = String(this.userAnalysis)+rawKeyPressed;
+                        //}
                     }
                     this._updateAnalysisData()
                 }
@@ -1841,7 +1844,7 @@ class CircuitUI{
             inductance: NaN, 
             capacitance: NaN,
         };
-        this.userAnalysis=0;
+        this.userAnalysis="";
         this.selectedComponent=null;
 
         this.analysisType=document.getElementById("menu").value;
@@ -1865,11 +1868,11 @@ class CircuitUI{
     _updateAnalysisData(){
         //this.userAnalysis is user text entry, and we just have to assign it to either a node or a component
         if(this.selectedComponentSegment=="line"){
-            this.analysisData.current=this.userAnalysis;
+            this.analysisData.current=Number(this.userAnalysis);
         }else if(this.selectedComponentSegment=="startPoint"){
-            this.analysisData.startNodeVoltage=this.userAnalysis;
+            this.analysisData.startNodeVoltage=Number(this.userAnalysis);
         }else if(this.selectedComponentSegment=="endPoint"){
-            this.analysisData.endNodeVoltage=this.userAnalysis;
+            this.analysisData.endNodeVoltage=Number(this.userAnalysis);
         }else{
             console.log(this.selectedComponent,this.selectedComponentSegment);
             console.log("fuck");
@@ -1896,16 +1899,43 @@ class CircuitUI{
         }
     }
     _enoughInfoToSolve(){
-        return true;
+        if(this.selectedComponentSegment=="line"){
+            //component
+            //requires both nodal voltages to be solved
+            if(this.completedNodes.includes(this.selectedComponent.startNodeName)&&this.completedNodes.includes(this.selectedComponent.endNodeName)){
+                return true;
+            }
+            //alternatively, requires all connected components on one end to be solved (kcl)
+            //todo
+        }else{
+            //node
+            //requires one of its connected components to be solved
+            let selectedNode = this._getSelectedNode();
+            for (let i=0; i<this.completedComponents.length; i++){
+                if(this.completedComponents[i].startNodeName==selectedNode || this.completedComponents[i].endNodeName==selectedNode){
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     _checkCorrectness(){
-        return true;
+        //error value is how far off the student can be while still being correct
+        //for example, error = 0.1 is 10%
+        let error = 0.1;
+        if(this.selectedComponentSegment=="line"){
+            let compSimulationData = this.circuit.getComponentData(this.selectedComponent.name);
+            return isBetween(Math.abs(this.analysisData.current),Math.abs(compSimulationData.current*1000*(1+error)),Math.abs(compSimulationData.current*1000*(1-error)));
+        }else{
+            let voltage = this.circuit.getNodeVoltage(String(this._getSelectedNode()));
+            return isBetween(Number(this.userAnalysis),voltage*(1+error),voltage*(1-error));
+        }
     }
     _showMissingInfo(){
-
+        console.log("user does not have enough info to have this answer");
     }
     _giveHints(){
-
+        console.log("wrong answer");
     }
     _circuitIsDone(){
         for(let i=0; i<this.components.length; i++){
