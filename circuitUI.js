@@ -418,8 +418,8 @@ function updateDropdown(n) {
     meshOption.text = "Mesh Analysis";
 
     // Clear existing options
-    while (menu.options.length > 2) {
-      menu.remove(2);
+    while (menu.options.length > 1) {
+      menu.remove(1);
     }
     
     // Add options based on n
@@ -692,7 +692,7 @@ class UIPlot extends UIButton{
 }
 
 class CircuitUI{
-    constructor(htmlCanvasElement, circuit=null){
+    constructor(htmlCanvasElement, htmlCanvasElement2=null, circuit=null){
         //Circuit stuff
         this.components = [];
         this.numNodes=2;
@@ -702,6 +702,15 @@ class CircuitUI{
         //Canvas
         this.htmlCanvasElement = htmlCanvasElement;
         this.ctx = this.htmlCanvasElement.getContext("2d");
+
+        //Second Canvas (for feedback)
+        this.htmlCanvasElement2 = htmlCanvasElement2;
+        this.ctx2 = this.htmlCanvasElement2.getContext("2d");
+        // Calculate scaling factors to maintain the aspect ratio
+        let scaleX = this.htmlCanvasElement2.width / this.htmlCanvasElement2.offsetWidth;
+        let scaleY = this.htmlCanvasElement2.height / this.htmlCanvasElement2.offsetHeight;
+        // Apply the scaling factors to the context
+        this.ctx2.scale(scaleX, scaleY);
 
         //Rendering variables
         this.backgroundColor = 'rgb(240,240,240)';
@@ -771,6 +780,9 @@ class CircuitUI{
         };
         this.userAnalysis="";
         this.analysisType="";
+        this.analysisFeedback="";
+        this.highlightedComponents=[];
+        this.highlightedNodes=[];
 
         //misc variables
         this.minimumStateRadius = 10;
@@ -797,6 +809,10 @@ class CircuitUI{
         ctx.clearRect(0, 0, this.htmlCanvasElement.width, this.htmlCanvasElement.height);
         ctx.fillRect(0, 0, this.htmlCanvasElement.width, this.htmlCanvasElement.height);
 
+        this.ctx2.fillStyle = this.backgroundColor;
+        this.ctx2.clearRect(0, 0, this.htmlCanvasElement2.width*this.htmlCanvasElement2.offsetWidth, this.htmlCanvasElement2.height);
+        this.ctx2.fillRect(0, 0, this.htmlCanvasElement2.width*this.htmlCanvasElement2.offsetWidth, this.htmlCanvasElement2.height);
+
         ctx.fillStyle = "black";
         ctx.textAlign = "left";
         ctx.fillText("t = " + this.circuit.getCurrentTime().toPrecision(5) + "s", 10, 60);
@@ -804,6 +820,11 @@ class CircuitUI{
         ctx.fillText(this.numNodes,540,40);
         ctx.fillText("Resistors:",660,20);
         ctx.fillText(this.numResistors,675,40);
+
+        this.ctx2.fillStyle = "red";
+        this.ctx2.textAlign = "left";
+        this.ctx2.font = "20px Arial";
+        this.ctx2.fillText(this.analysisFeedback,10,20);
         
         //Set Default Colors
         ctx.fillStyle = this.defaultStrokeColor;
@@ -830,9 +851,12 @@ class CircuitUI{
                     ctx.fillStyle = "blue";
                 }
             }else if(this.userState == "userAnalysis"){
-                if(this.completedComponents.includes(this.components[i])){
+                if(this.highlightedComponents.includes(this.components[i])){
+                    ctx.fillStyle = "green";
+                    ctx.strokeStyle = "green";
+                }else if(this.completedComponents.includes(this.components[i])){
                     ctx.fillStyle = "black";
-                    ctx.strokeStype = "black";
+                    ctx.strokeStyle = "black";
                 }else{
                     ctx.fillStyle = "red";
                     ctx.strokeStyle = "red";
@@ -867,6 +891,9 @@ class CircuitUI{
                     ctx.fillStyle="blue";
                     voltage=Number(this.userAnalysis);
                 }
+            }
+            if(this.highlightedNodes.includes(name)){
+                ctx.fillStyle = "green";
             }
             if(this.userState=="userAnalysis"&&!this.completedNodes.includes(name)&&name!=this._getSelectedNode()){
                 ctx.fillStyle="black";
@@ -1064,9 +1091,6 @@ class CircuitUI{
         }
         return null;
     }
-
-    //why does this function exist
-    //_addComponent(c){   this.components.push(c);    }
 
     _deleteComponent(component = null){
         if (component == null){ component = this.selectedComponent; }
@@ -1389,6 +1413,9 @@ class CircuitUI{
                                     break;
                             }
                             this._updateWires();
+                            this.analysisFeedback="";
+                            this.highlightedComponents=[];
+                            this.highlightedNodes=[];
                             if(this._circuitIsDone()){
                                 //circuit analysis is done
                                 this.userState="idle";
@@ -1933,9 +1960,11 @@ class CircuitUI{
     }
     _showMissingInfo(){
         console.log("user does not have enough info to have this answer");
+        this.analysisFeedback="Not have enough known info";
     }
     _giveHints(){
         console.log("wrong answer");
+        this.analysisFeedback="Incorrect answer";
     }
     _circuitIsDone(){
         for(let i=0; i<this.components.length; i++){
@@ -1956,9 +1985,10 @@ class CircuitUI{
 //let circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,4,1000,r,r836,4,0,2000,r,r69,4,5,3000,r,r68,5,0,4000,");
 let circuit = new Circuit();
 const htmlCanvasElement = document.getElementById("circuitCanvas");
+const htmlCanvasElement2 = document.getElementById("feedbackCanvas");
 const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
-const c = new CircuitUI(htmlCanvasElement,circuit);
+const c = new CircuitUI(htmlCanvasElement,htmlCanvasElement2,circuit);
 
 //series
 //c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;r,420,180,420,280,1k;w,420,280,300,280,1;g,300,280,300,320,0;");
