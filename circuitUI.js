@@ -410,8 +410,8 @@ function updateDropdown(n) {
 
     ohmsLawOption.value = "Ohm";
     ohmsLawOption.text = "Ohm's Law";
-    kirchhoffsLawsOption.value = "KVL/KCL";
-    kirchhoffsLawsOption.text = "Kirchhoff's Laws";
+    kirchhoffsLawsOption.value = "Equivalent";
+    kirchhoffsLawsOption.text = "Equivalent Circuits";
     nodalOption.value = "Nodal";
     nodalOption.text = "Nodal Analysis";
     meshOption.value = "Mesh";
@@ -430,6 +430,99 @@ function updateDropdown(n) {
     }
     menu.add(nodalOption);
     menu.add(meshOption);
+  }
+
+  //this function opens a popup for matrix entry
+  //its kinda big because it contains all the html code for the popup
+  function openPopup(matrixSize) {
+    // Open a popup window with specified dimensions
+    let popupWindow = window.open('', 'popupWindow', 'width=400,height=200');
+    
+    // Write HTML content to the popup window
+    let htmlString=`
+    <html>
+    <head>
+        <title>Matrix entry</title>
+    </head>
+        <style>
+            /* General style for all text inputs */
+            .textInput {
+                width: 50px;
+                margin-bottom: 20px; /* Optional: Adds some spacing between text inputs */
+            }
+            .gridContainer {
+                display: grid;
+                grid-template-columns: auto auto auto;
+                grid-gap: 5px; /* Adjust the value to control the amount of space */
+            }`
+    //we write the grid layout for every element
+    for(let i=0;i<matrixSize;++i){
+        //matrix
+        for(let j=0;j<matrixSize;++j){
+            htmlString+=`.textInput`+String(i)+String(j)+`{
+                grid-row: `+String(i+1)+`;
+                grid-column: `+String(j+1)+`;
+            }`;
+        }
+        //V1-V99 vector
+        htmlString+=`.V`+String(i)+`{
+            grid-row: `+String(i+1)+`;
+            grid-column: `+String(matrixSize+1)+`;
+        }`;
+        //right side
+        htmlString+=`.textInput`+String(i)+`{
+            grid-row: `+String(i+1)+`;
+            grid-column: `+String(matrixSize+3)+`;
+        }`;
+    }
+    htmlString+=`</style>
+    <body>
+        <form id="myForm">
+            <label>Enter Matrix:</label>
+            <br>
+            <div class="gridContainer">`;
+    //console.log("matrixSize",matrixSize);
+    for(let i=0;i<matrixSize;++i){
+        //matrix
+        for(let j=0;j<matrixSize;++j){
+            htmlString+=`<div class="textInput`+String(i)+String(j)+`"><input type="text" class="textInput" id="textInput`+String(i)+String(j)+`" /></div>`
+        }
+        //V1-V99 vector
+        htmlString+=`<div class="V`+String(i)+`"><label> V`+String(i+1)+`</label></div>`;
+        //right side
+        htmlString+=`<div class="textInput`+String(i)+`"><input type="text" class="textInput" id="textInput`+String(i)+`" /></div>`
+    }
+    htmlString+=`
+        </div> 
+        <br>
+        <button type="button" onclick="yeet()">Submit</button>
+    </form>
+    <script>
+        window.onbeforeunload = function() {
+            window.opener.postMessage(document.getElementById('textInput').value, '*');
+        };
+
+        function yeet() {
+            let matrixinfo = [];
+            for(let i=0;i<`+String(matrixSize)+`;++i){
+                for(let j=0;j<`+String(matrixSize)+`;++j){
+                    matrixinfo.push(document.getElementById('textInput'+String(i)+String(j)).value);
+                }
+                matrixinfo.push(document.getElementById('textInput'+String(i)).value);
+            }
+            window.opener.postMessage(matrixinfo,'*');
+
+            //window.close();
+        }
+    </script>
+    </body>
+    </html>`
+    
+    popupWindow.document.write(htmlString);
+  }
+  function closePopup(){
+    let popupWindow = window.open('', 'popupWindow', 'width=400,height=200');
+    popupWindow.close();
   }
 
   function isBetween(i, j, k) {
@@ -780,7 +873,8 @@ class CircuitUI{
         };
         this.userAnalysis="";
         this.analysisType="";
-        this.analysisFeedback="";
+        this.named=[];
+        this.analysisFeedback=[];
         this.highlightedComponents=[];
         this.highlightedNodes=[];
 
@@ -798,7 +892,7 @@ class CircuitUI{
         if (this.run){
             this.circuit.Calculate(this.numCalculationsPerRender);
             //if in user analysis, only calculate once (achieved by turning run off)
-            if(this.userState=="userAnalysis"){this.run=false}
+            if(this.userState=="userAnalysis" || this.userState=="naming"){this.run=false}
             //hopefully one calculate is enough
         }
 
@@ -824,7 +918,9 @@ class CircuitUI{
         this.ctx2.fillStyle = "red";
         this.ctx2.textAlign = "left";
         this.ctx2.font = "20px Arial";
-        this.ctx2.fillText(this.analysisFeedback,10,20);
+        for(let i=0;i<this.analysisFeedback.length;++i){
+            this.ctx2.fillText(this.analysisFeedback[i],10,20+i*20);
+        }
         
         //Set Default Colors
         ctx.fillStyle = this.defaultStrokeColor;
@@ -850,10 +946,10 @@ class CircuitUI{
                     compSimulationData=this.analysisData;
                     ctx.fillStyle = "blue";
                 }
-            }else if(this.userState == "userAnalysis"){
+            }else if(this.userState == "userAnalysis" || this.userState == "naming"){
                 if(this.highlightedComponents.includes(this.components[i])){
-                    ctx.fillStyle = "green";
-                    ctx.strokeStyle = "green";
+                    ctx.fillStyle = "lime";
+                    ctx.strokeStyle = "lime";
                 }else if(this.completedComponents.includes(this.components[i])){
                     ctx.fillStyle = "black";
                     ctx.strokeStyle = "black";
@@ -886,26 +982,36 @@ class CircuitUI{
             const point = new Point().fromHashCode(key);
             let voltage = this.circuit.getNodeVoltage(String(name));
             ctx.fillStyle=styleFromVoltage(voltage);
-            if(this.userState=="userAnalysis"){
-                if(name==this._getSelectedNode()){
-                    ctx.fillStyle="blue";
-                    voltage=Number(this.userAnalysis);
+            if(this.userState == "naming"){
+                if(this.completedNodes.includes(name)){ continue; }
+                let nameIndex = this.named.indexOf(name);
+                if(nameIndex==-1){
+                    ctx.fillStyle="red";
+                    ctx.fillText("?", point.x+5, point.y-5,);
+                }else{
+                    ctx.fillStyle="black";
+                    ctx.fillText("V"+(nameIndex+1), point.x+5, point.y-5,);
                 }
-            }
-            if(this.highlightedNodes.includes(name)){
-                ctx.fillStyle = "green";
-            }
-            if(this.userState=="userAnalysis"&&!this.completedNodes.includes(name)&&name!=this._getSelectedNode()){
-                ctx.fillStyle="black";
-                ctx.beginPath();
-                ctx.fillText("?", point.x+5, point.y-5,);
-                ctx.closePath();
-            }else if(voltage!=undefined&&!isNaN(voltage)){
-                //console.log(voltage,key,point);
-                //console.log(ctx.fillStyle);
-                ctx.beginPath();
-                ctx.fillText(voltage.toPrecision(3), point.x+5, point.y-5,);
-                ctx.closePath();
+            }else{ 
+                if(this.userState=="userAnalysis"){
+                    if(name==this._getSelectedNode()){
+                        ctx.fillStyle="blue";
+                        voltage=Number(this.userAnalysis);
+                    }
+                }
+                if(this.userState=="userAnalysis"&&!this.completedNodes.includes(name)&&name!=this._getSelectedNode()){
+                    //console.log(this.highlightedNodes,name);
+                    if(this.highlightedNodes.includes(name)){
+                        ctx.fillStyle = "lime";
+                        ctx.fillRect(point.x-2, point.y-18, 15, 15);
+                    }
+                    ctx.fillStyle="black";
+                    ctx.fillText("?", point.x+5, point.y-5,);
+                }else if(voltage!=undefined&&!isNaN(voltage)){
+                    //console.log(voltage,key,point);
+                    //console.log(ctx.fillStyle);
+                    ctx.fillText(voltage.toPrecision(3), point.x+5, point.y-5,);
+                }
             }
         }
         this._renderButtons();
@@ -1262,18 +1368,17 @@ class CircuitUI{
                         this.circuit.randomize(this.numNodes,this.numResistors); 
                         //console.log(this.circuit.getCircuitText());
                         this.loadFromCircuitText(this.circuit.getCircuitText());
+                        updateDropdown(this.numNodes);
                         break;
                     case this.increaseNodesButton: 
                         if(this.numNodes<=this.numResistors){this.numNodes++;}
                         else{this.increaseResistorsButton.backgroundColor="lime";}
-                        updateDropdown(this.numNodes);
                         break;
                     case this.decreaseNodesButton: 
                         if(this.numNodes>2){
                             this.numNodes--;
                             this.increaseResistorsButton.backgroundColor="grey";
                             this.decreaseNodesButton.backgroundColor="grey";
-                            updateDropdown(this.numNodes);
                         }
                         break;
                     case this.increaseResistorsButton: 
@@ -1413,7 +1518,7 @@ class CircuitUI{
                                     break;
                             }
                             this._updateWires();
-                            this.analysisFeedback="";
+                            this.analysisFeedback=[];
                             this.highlightedComponents=[];
                             this.highlightedNodes=[];
                             if(this._circuitIsDone()){
@@ -1423,6 +1528,8 @@ class CircuitUI{
                         }else{
                             //user had enough info, but was incorrect
                             this._giveHints();
+                            this.highlightedComponents=[];
+                            this.highlightedNodes=[];
                         }
                     }else{
                         //user didn't have enough info
@@ -1457,7 +1564,30 @@ class CircuitUI{
             }
             
         }
-
+        if(this.userState=="naming"){
+            if(this.analysisType=="Nodal"){
+                //nodal
+                if (event.type == "dblclick" && componentOver != null){ //dbl click means naming a node
+                    this.selectedComponent = componentOver;
+                    this.selectedComponentSegment = componentOverSegment;
+                    //we don't want to be able to select non-nodes (and nodes we've already named)
+                    let selectedNode=this._getSelectedNode();
+                    if(componentOverSegment!="line" && !this.named.includes(selectedNode) && !this.completedNodes.includes(selectedNode)){
+                        this.named.push(selectedNode);
+                        //somehow figure out if we've named all the nodes
+                        //console.log(this.named.length,this.completedNodes.length,this.nodes.length);
+                        if((this.named.length+this.completedNodes.length)==this.nodes.length){
+                            //all nodes have been named
+                            //console.log("next");
+                            this.analysisFeedback=[];
+                            openPopup(this.named.length);
+                        }
+                    }
+                }
+            }else{
+                //mesh
+            }
+        }
         if (this.userState == "creatingComponent"){
             if (event.type == 'mousedown'){
                 this.selectedComponent = new UIComponent(this.componentTypeToDraw);
@@ -1487,7 +1617,33 @@ class CircuitUI{
         //window listener (resize)
         window.addEventListener('resize', function(e){
             selfObject.resize(e);
-        })
+        });
+
+        //message listener (from popups)
+        window.addEventListener('message', function(event) {
+            //matrix is still in its raw form, so convert it into matA and matB
+            //such that matA * matV (the voltages) = matB
+            let matA=[];
+            let matB=[];
+            //use event.data
+            for(let i=0;i<selfObject.named.length;++i){
+                for(let j=0;j<selfObject.named.length;++j){
+                    matA.push(Number(event.data[i*(selfObject.named.length+1)+j]));
+                }
+                //matA.push(...event.data.slice(i*(selfObject.named.length+1),(i+1)*(selfObject.named.length+1)-1));
+                matB.push(Number(event.data[(i+1)*(selfObject.named.length+1)-1]));
+            }
+            if(selfObject._checkCorrectness(matA,matB)){
+                //user's matrix is good
+                selfObject.userState="idle";
+                closePopup();
+                this.analysisFeedback=[];
+            }else{
+                //user's matrix is incorrect
+                console.log("matrix incorrect try again");
+                selfObject._giveHints();
+            }
+        });
     }
 
     ///*
@@ -1528,6 +1684,7 @@ class CircuitUI{
             if (sn == null && en == null){ //case 1: both are null - get next node name and set both points to it in the map
                 this.nodeMap.set(c.startPoint.getHashCode(), nodeOn);
                 this.nodeMap.set(c.endPoint.getHashCode(), nodeOn);
+                this.nodes.push(nodeOn);
                 nodeOn += 1;
             } else if (sn == null && en != null){ //case 2 & 3: one is null: set null point to non-null point node.
                 this.nodeMap.set(c.startPoint.getHashCode(), en);
@@ -1567,6 +1724,7 @@ class CircuitUI{
             let sn = this.nodeMap.get(c.startPoint.getHashCode());
             if (sn == null){
                 this.nodeMap.set(c.startPoint.getHashCode(), nodeOn);
+                this.nodes.push(nodeOn);
                 nodeOn += 1;
             }
             c.startNodeName = this.nodeMap.get(c.startPoint.getHashCode());
@@ -1575,6 +1733,7 @@ class CircuitUI{
             let en = this.nodeMap.get(c.endPoint.getHashCode());
             if (en == null){
                 this.nodeMap.set(c.endPoint.getHashCode(), nodeOn);
+                this.nodes.push(nodeOn);
                 nodeOn += 1;
             }
             c.endNodeName = this.nodeMap.get(c.endPoint.getHashCode());
@@ -1856,6 +2015,7 @@ class CircuitUI{
         this._resetSimulation();
     }
 
+    //occurs when we click Run Simulation while one of the circuit analysis options is selected in the dropdown menu
     circuitAnalysis(){
         //clear all analysis variables
         this.completedComponents=[];
@@ -1872,6 +2032,7 @@ class CircuitUI{
             capacitance: NaN,
         };
         this.userAnalysis="";
+        this.named=[];
         this.selectedComponent=null;
 
         this.analysisType=document.getElementById("menu").value;
@@ -1887,7 +2048,14 @@ class CircuitUI{
             }
         }
         this._updateWires();
-        this.userState="userAnalysis"
+        if(this.analysisType=="Ohm"||this.analysisType=="Equivalent"){
+            //Ohm's law and Equivalent Circuits can jump right into it
+            this.userState="userAnalysis";
+        }else{
+            //Nodal and mesh need to name nodes/loops
+            this.userState="naming";
+            this.analysisFeedback.push("Double click nodes to name them");
+        }
         //run the simulator so we can compare the user inputs to the simulated data
         this.run = true;
     }
@@ -1932,39 +2100,142 @@ class CircuitUI{
             if(this.completedNodes.includes(this.selectedComponent.startNodeName)&&this.completedNodes.includes(this.selectedComponent.endNodeName)){
                 return true;
             }
-            //alternatively, requires all connected components on one end to be solved (kcl)
-            //todo
+            //alternatively, requires all connected components on one end to be solved (equivalent)
+            if (this.analysisType=="Equivalent"){
+                //startnode
+                let success=false;
+                for(let i=0; i<this.components.length; i++){
+                    if(this.components[i]==this.selectedComponent) continue;
+                    if(this.components[i].startNodeName==this.selectedComponent.startNodeName||this.components[i].endNodeName==this.selectedComponent.startNodeName){
+                        if(!this.completedComponents.includes(this.components[i])){
+                            success=false;
+                            break;
+                        }else{
+                            success=true;
+                        }
+                    }
+                }
+                if(success) return true;
+                //endnode
+                for(let i=0; i<this.components.length; i++){
+                    if(this.components[i]==this.selectedComponent) continue;
+                    if(this.components[i].startNodeName==this.selectedComponent.endNodeName||this.components[i].endNodeName==this.selectedComponent.endNodeName){
+                        if(!this.completedComponents.includes(this.components[i])){
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
         }else{
             //node
             //requires one of its connected components to be solved
             let selectedNode = this._getSelectedNode();
             for (let i=0; i<this.completedComponents.length; i++){
-                if(this.completedComponents[i].startNodeName==selectedNode || this.completedComponents[i].endNodeName==selectedNode){
+                if((this.completedComponents[i].startNodeName==selectedNode && this.completedNodes.includes(this.completedComponents[i].endNodeName)) || 
+                    (this.completedComponents[i].endNodeName==selectedNode && this.completedNodes.includes(this.completedComponents[i].startNodeName))){
                     return true;
                 }
             }
         }
         return false;
     }
-    _checkCorrectness(){
+    _checkCorrectness(matA=null,matB=null){
         //error value is how far off the student can be while still being correct
         //for example, error = 0.1 is 10%
         let error = 0.1;
-        if(this.selectedComponentSegment=="line"){
-            let compSimulationData = this.circuit.getComponentData(this.selectedComponent.name);
-            return isBetween(Math.abs(this.analysisData.current),Math.abs(compSimulationData.current*1000*(1+error)),Math.abs(compSimulationData.current*1000*(1-error)));
+        if(matA==null){
+            //checking the correctness of a component
+            if(this.selectedComponentSegment=="line"){
+                let compSimulationData = this.circuit.getComponentData(this.selectedComponent.name);
+                return isBetween(Math.abs(this.analysisData.current),Math.abs(compSimulationData.current*1000*(1+error)),Math.abs(compSimulationData.current*1000*(1-error)));
+            }else{
+                let voltage = this.circuit.getNodeVoltage(String(this._getSelectedNode()));
+                return isBetween(Number(this.userAnalysis),voltage*(1+error),voltage*(1-error));
+            }
         }else{
-            let voltage = this.circuit.getNodeVoltage(String(this._getSelectedNode()));
-            return isBetween(Number(this.userAnalysis),voltage*(1+error),voltage*(1-error));
+            //checking the correctness of a matrix
+            let matX=Array.from({length:matB.length},(_, index) => index);
+            //console.log(matA,matX,matB);
+            Gaussian(matA,matX,matB,this.named.length);
+            //console.log(matX);
+            for(let i=0;i<this.named.length;++i){
+                let voltage = this.circuit.getNodeVoltage(String(this.named[i]));
+                //console.log(i," matrix: ",matX[i]," simulation: ",voltage);
+                if(!isBetween(matX[i],voltage*(1+error),voltage*(1-error))){
+                    //console.log("matrix failed");
+                    return false;
+                }
+            }
+            return true;
         }
     }
     _showMissingInfo(){
-        console.log("user does not have enough info to have this answer");
-        this.analysisFeedback="Not have enough known info";
+        this.analysisFeedback=[];
+        //console.log("user does not have enough info to have this answer");
+        this.analysisFeedback.push("Not enough known info");
+        //highlight the components we want to point out
+        if(this.selectedComponentSegment=="line"){
+            //component
+            //requires both nodal voltages to be solved
+            if(!this.completedNodes.includes(this.selectedComponent.startNodeName)){
+                this.highlightedNodes.push(this.selectedComponent.startNodeName);
+            }
+            if(!this.completedNodes.includes(this.selectedComponent.endNodeName)){
+                this.highlightedNodes.push(this.selectedComponent.endNodeName);
+            }
+            //alternatively, requires all connected components on one end to be solved (kcl)
+            
+        }else{
+            //node
+            //requires one of its connected components to be solved
+            let selectedNode = this._getSelectedNode();
+            for (let i=0; i<this.components.length; i++){
+                if(this.completedComponents.includes(this.components[i])) continue;
+                if(this.components[i].startNodeName==selectedNode || this.components[i].endNodeName==selectedNode){
+                    this.highlightedComponents.push(this.components[i]);
+                }
+            }
+        }
+        //console.log(this.highlightedNodes,this.highlightedComponents);
     }
     _giveHints(){
-        console.log("wrong answer");
-        this.analysisFeedback="Incorrect answer";
+        this.analysisFeedback=[];
+        //console.log("wrong answer");
+        this.analysisFeedback.push("Incorrect answer");
+        if(this.analysisType=="Ohm"){
+            //hints for the ohm's law analysis are simple
+            //there are only two things to solve
+            //1: the single nodal voltage (solved by looking at the voltage source)
+            //2: the current across each resistor (solved by using ohm's law)
+            if(this.selectedComponentSegment=="line"){
+                //2:
+                this.analysisFeedback.push("Remember Ohm's law V=IR");
+            }else{
+                //1:
+                this.analysisFeedback.push("Look at the voltage source (watch your signs)");
+            }
+        }else if (this.analysisType=="Equivalent"){
+            //hints for equivalent circuits are also pretty simple
+            //there are only a few things to solve
+            //1: the equivalent circuit (to find the current through each component)
+            //2: how the current splits through each resistor
+            //3: nodal voltages (using ohm's law)
+            if(this.selectedComponentSegment=="line"){
+                //hard to tell whether 1: or 2: went wrong
+                //try to handle both?
+                this.analysisFeedback.push("First derive the equivalent circuit using the series and parallel rules.");
+                this.analysisFeedback.push("Then use the current divider rules.");
+            }else{
+                //3:
+                this.analysisFeedback.push("use Ohm's law to find the nodal voltages (V=IR)");
+                //if the person got a nodal voltage attached to the voltage source wrong, that's kinda awkward
+            }
+        }else if(this.analysisType=="Nodal"){
+            this.analysisFeedback.push("Use KCL at each node and convert currents");
+            this.analysisFeedback.push("to nodal voltages using Ohm's law");
+            //todo: give better feedback
+        }
     }
     _circuitIsDone(){
         for(let i=0; i<this.components.length; i++){
