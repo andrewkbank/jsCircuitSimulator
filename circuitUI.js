@@ -528,6 +528,62 @@ function updateDropdown(n) {
   function isBetween(i, j, k) {
     return (i >= j && i <= k) || (i >= k && i <= j);
   }
+  
+  function isLoop(componentList){
+    //checks if componentList is a loop
+    let nodeList=[];
+    let empty=true;
+    //note: we could either compare node names or node points
+    //I've chosen to go with names since some parallel line components are hard to select (which is needed to select all the points of a loop)
+    for(let i=0;i<componentList.length;++i){
+        //add unique node names to the node lists
+        //and remove duplicate node names
+        if(componentList[i].type=="wire") continue;
+        empty=false;
+        if(nodeList.includes(componentList[i].startNodeName)){
+            nodeList.splice(nodeList.indexOf(componentList[i].startNodeName),1);
+        }else{
+            nodeList.push(componentList[i].startNodeName);
+        }
+        if(nodeList.includes(componentList[i].endNodeName)){
+            nodeList.splice(nodeList.indexOf(componentList[i].endNodeName),1);
+        }else{
+            nodeList.push(componentList[i].endNodeName);
+        }
+    }
+    return (nodeList.length===0&&!empty);
+  }
+
+  function midPoint(components){
+    //shoutouts to Jarvis for this one
+    if (components.length === 0) {
+        return null; // Handle the case where the array is empty
+    }
+    const centroid = new Point(0,0);
+
+    // Calculate the sum of each dimension
+    for (const component of components) {
+        centroid.addi(component.startPoint);
+        //if endpoint is a distinct point from startpoint
+        centroid.addi(component.endPoint);
+    }
+
+    // Calculate the average for each dimension
+    centroid.x /= components.length*2;
+    centroid.y /= components.length*2;
+
+    return centroid;
+  }
+
+  function distanceFromMidpoint(centroid, components){
+    let sum = 0;
+    for(let i=0;i<components.length;++i){
+        sum+=centroid.distTo(components[i].startPoint);
+        sum+=centroid.distTo(components[i].endPoint);
+    }
+    sum/=components.length*2;
+    return sum
+  }
 
 //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString,
 class UIComponent{
@@ -874,6 +930,7 @@ class CircuitUI{
         this.userAnalysis="";
         this.analysisType="";
         this.named=[];
+        this.loop=[];
         this.analysisFeedback=[];
         this.highlightedComponents=[];
         this.highlightedNodes=[];
@@ -937,7 +994,7 @@ class CircuitUI{
             let compSimulationData = this.circuit.getComponentData(this.components[i].name);
             compSimulationData.current*=1000;
 
-            if (this.components[i] == this.selectedComponent&&this.selectedComponentSegment!="endPoint"&&this.selectedComponentSegment!="startPoint"){
+            if (this.userState!="naming"&&this.components[i] == this.selectedComponent&&this.selectedComponentSegment!="endPoint"&&this.selectedComponentSegment!="startPoint"){
                 ctx.strokeStyle = highlightColor;
                 if (this.userState == "editingComponentValue"){
                     if (this.components[i].valueIsValid == true){   ctx.fillStyle = "green";
@@ -950,6 +1007,21 @@ class CircuitUI{
                 if(this.highlightedComponents.includes(this.components[i])){
                     ctx.fillStyle = "lime";
                     ctx.strokeStyle = "lime";
+                }else if(this.loop.includes(this.components[i])){
+                    ctx.fillStyle = "blue";
+                    ctx.strokeStyle = "blue";
+                    //component hasn't been solved yet, so don't display the solved data yet
+                    compSimulationData={
+                        voltage: NaN, 
+                        current: NaN,
+                        startNodeVoltage: NaN,
+                        endNodeVoltage: NaN,
+                        voltageHistory: [],
+                        currentHistory: [],
+                        resistance: NaN,
+                        inductance: NaN, 
+                        capacitance: NaN,
+                    };
                 }else if(this.completedComponents.includes(this.components[i])){
                     ctx.fillStyle = "black";
                     ctx.strokeStyle = "black";
@@ -982,7 +1054,7 @@ class CircuitUI{
             const point = new Point().fromHashCode(key);
             let voltage = this.circuit.getNodeVoltage(String(name));
             ctx.fillStyle=styleFromVoltage(voltage);
-            if(this.userState == "naming"){
+            if(this.userState == "naming" && this.analysisType=="Nodal"){
                 if(this.completedNodes.includes(name)){ continue; }
                 let nameIndex = this.named.indexOf(name);
                 if(nameIndex==-1){
@@ -999,7 +1071,7 @@ class CircuitUI{
                         voltage=Number(this.userAnalysis);
                     }
                 }
-                if(this.userState=="userAnalysis"&&!this.completedNodes.includes(name)&&name!=this._getSelectedNode()){
+                if(this.userState=="userAnalysis"&&!this.completedNodes.includes(name)&&name!=this._getSelectedNode() || this.userState == "naming"){
                     //console.log(this.highlightedNodes,name);
                     if(this.highlightedNodes.includes(name)){
                         ctx.fillStyle = "lime";
@@ -1016,6 +1088,9 @@ class CircuitUI{
         }
         this._renderButtons();
         this._renderPlots();
+        if(this.analysisType=="Mesh"){
+            this._renderLoops();
+        }
     }
     _renderButtons(){
         const falseColor = "#DD4444";
@@ -1096,6 +1171,46 @@ class CircuitUI{
                 this.ctx.closePath();
             }
             startX += plotWidth + paddingX;
+        }
+    }
+    _renderLoops(){
+        const ctx = this.ctx; //this.htmlCanvasElement.getContext('2d');
+        for(let i=0;i<this.named.length;++i){
+            let centerpoint=midPoint(this.named[i]);
+            let size=distanceFromMidpoint(centerpoint,this.named[i]);
+            // Create a new image element
+            const image = new Image();
+            image.id = 'renderedImage'+i; // Set a unique identifier for the image
+
+            // Set the source of the image
+            image.src = "https://www.svgrepo.com/download/69401/circular-arrow.svg";
+
+            // Calculate the top-left corner based on the center point
+            const left = centerpoint.x - size / 4;
+            const top = centerpoint.y - size / 4;
+
+            // Append the image to the body
+            //document.body.appendChild(image);
+            if(this.loopDirections[i]){
+                //mirror the image
+                ctx.translate(left+size/2,top);
+                ctx.scale(-1,1);
+                ctx.drawImage(image,0,0,size/2,size/2);
+            }else{
+                ctx.drawImage(image,left,top,size/2,size/2);
+            }
+
+            //reset ctx
+            ctx.setTransform(1,0,0,1,0,0);
+
+            //Set Default Colors
+            ctx.fillStyle = this.defaultStrokeColor;
+            ctx.lineWidth = this.defaultStrokeWidth;
+            ctx.font = this.defaultFont;
+
+            ctx.strokeStyle = "black";
+            ctx.highlightColor = "black";
+            ctx.fillText("I"+i, centerpoint.x-10, centerpoint.y-10,);
         }
     }
     resize() { 
@@ -1255,7 +1370,6 @@ class CircuitUI{
             event = {type: 'unknown_event'};
             console.error("event listener was passed an event without a type!");
         }
-
         switch (event.type) {
             case 'mousedown':
                 newMousePos = new Point(event.offsetX, event.offsetY);
@@ -1586,6 +1700,34 @@ class CircuitUI{
                 }
             }else{
                 //mesh
+                if (event.type == "dblclick" && componentOver != null){ //dbl click means naming a node
+                    this.selectedComponent = componentOver;
+                    this.selectedComponentSegment = componentOverSegment;
+                    //we only care about selecting components (not nodes) that aren't already in the current loop
+                    if(componentOverSegment=="line" ){
+                        if(!this.loop.includes(this.selectedComponent)){
+                            //adds the component to the loop
+                            this.loop.push(this.selectedComponent);
+                            //figure out if we've completed the loop
+                            if(isLoop(this.loop)){
+                                this.named.push(this.loop);
+                                this.loopDirections.push(false);
+                                this.loop=[];
+                                console.log(this.named);
+                                //figure out if the loops we have are adequate
+                            }
+                        }else{
+                            //removes the component from the loop
+                            this.loop.splice(this.loop.indexOf(this.selectedComponent),1);
+                        }
+                    }
+                }else if (event.type == "dblclick"){
+                    for(let i=0;i<this.named.length;++i){
+                        if(newMousePos.distTo(midPoint(this.named[i]))<50){
+                            this.loopDirections[i]=!this.loopDirections[i];
+                        }
+                    }
+                }
             }
         }
         if (this.userState == "creatingComponent"){
@@ -2033,6 +2175,8 @@ class CircuitUI{
         };
         this.userAnalysis="";
         this.named=[];
+        this.loop=[];
+        this.loopDirections=[];
         this.selectedComponent=null;
 
         this.analysisType=document.getElementById("menu").value;
@@ -2054,7 +2198,11 @@ class CircuitUI{
         }else{
             //Nodal and mesh need to name nodes/loops
             this.userState="naming";
-            this.analysisFeedback.push("Double click nodes to name them");
+            if(this.analysisType=="Nodal"){
+                this.analysisFeedback.push("Double click nodes to name them");
+            }else if(this.analysisType=="Mesh"){
+                this.analysisFeedback.push("Double click on each component of a loop");
+            }
         }
         //run the simulator so we can compare the user inputs to the simulated data
         this.run = true;
