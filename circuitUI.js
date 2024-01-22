@@ -878,6 +878,7 @@ class CircuitUI{
         this.increasePlotTimeScaleButton = new UIButton( "+Time", new Point(), new Point(50,30) );
         this.decreasePlotTimeScaleButton = new UIButton( "-Time", new Point(), new Point(50,30) );
         this.redirectButton = new UIButton("How to use simulation", new Point(1000,10), new Point(150,30),"https://docs.google.com/document/d/1Zo0ypoeOjzJ9L55SJJ1NKIb5JLhesanlvxz-toZ5qQY/edit?usp=sharing");
+        this.reportButton = new UIButton("Report Issues", new Point(1000,50), new Point(150,30), "https://forms.gle/ApacCDoyffeWv8tu9")
         this.randomizeButton = new UIButton("Randomize",new Point(800,10),new Point(150,30),"","green");
         this.increaseNodesButton = new UIButton("/\\",new Point(600,10),new Point(20,15));
         this.decreaseNodesButton = new UIButton("\\/",new Point(600,25),new Point(20,15));
@@ -889,6 +890,7 @@ class CircuitUI{
             this.resetSimulationButton,
             this.randomizeButton,
             this.redirectButton,
+            this.reportButton,
             this.increaseNodesButton,
             this.decreaseNodesButton,
             this.increaseResistorsButton,
@@ -1478,6 +1480,7 @@ class CircuitUI{
                         break;
                     case this.resetSimulationButton: this._resetSimulation(); break;
                     case this.redirectButton: this.redirectButton.redirectToWebsite(); break;
+                    case this.reportButton: this.reportButton.redirectToWebsite(); break;
                     case this.randomizeButton: 
                         this.circuit.randomize(this.numNodes,this.numResistors); 
                         //console.log(this.circuit.getCircuitText());
