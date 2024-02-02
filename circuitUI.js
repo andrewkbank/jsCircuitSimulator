@@ -434,7 +434,10 @@ function updateDropdown(n) {
 
   //this function opens a popup for matrix entry
   //its kinda big because it contains all the html code for the popup
-  function openPopup(matrixSize) {
+  function openPopup(matrixSize,nodal=true) {
+    let char = 'V';
+    if(!nodal)
+        char = 'I';
     // Open a popup window with specified dimensions
     let popupWindow = window.open('', 'popupWindow', 'width=400,height=200');
     
@@ -487,8 +490,8 @@ function updateDropdown(n) {
         for(let j=0;j<matrixSize;++j){
             htmlString+=`<div class="textInput`+String(i)+String(j)+`"><input type="text" class="textInput" id="textInput`+String(i)+String(j)+`" /></div>`
         }
-        //V1-V99 vector
-        htmlString+=`<div class="V`+String(i)+`"><label> V`+String(i+1)+`</label></div>`;
+        //V1-V99 vector (or I1-I99)
+        htmlString+=`<div class="`+char+String(i)+`"><label> `+char+String(i+1)+`</label></div>`;
         //right side
         htmlString+=`<div class="textInput`+String(i)+`"><input type="text" class="textInput" id="textInput`+String(i)+`" /></div>`
     }
@@ -1212,7 +1215,7 @@ class CircuitUI{
 
             ctx.strokeStyle = "black";
             ctx.highlightColor = "black";
-            ctx.fillText("I"+i, centerpoint.x-10, centerpoint.y-10,);
+            ctx.fillText("I"+(i+1), centerpoint.x-10, centerpoint.y-10,);
         }
     }
     resize() { 
@@ -1713,11 +1716,36 @@ class CircuitUI{
                             this.loop.push(this.selectedComponent);
                             //figure out if we've completed the loop
                             if(isLoop(this.loop)){
+                                //todo: figure out if adding this loop is necessary
+
                                 this.named.push(this.loop);
                                 this.loopDirections.push(false);
                                 this.loop=[];
                                 console.log(this.named);
                                 //figure out if the loops we have are adequate
+                                let distinctComponents = new Set();
+
+                                // Loop through each loop in this.named
+                                this.named.forEach(loop => {
+                                    // Loop through each component in the loop
+                                    loop.forEach(component => {
+                                        // Add component to the set
+                                        if(component.type=='r'||component.type=='c'||component.type=='l'){
+                                            distinctComponents.add(component);
+                                        }
+                                    });
+                                });
+                                //Be careful that you don't allow the user to push the buttons that change the number of resistors
+                                //console.log(distinctComponents.size,this.numResistors);
+                                if(distinctComponents.size>=this.numResistors){
+                                    //all loops have been named
+                                    //console.log("next");
+                                    this.selectedComponent=null;
+                                    this.selectedComponentSegment=null;
+                                    this.analysisFeedback=[];
+                                    openPopup(this.named.length,false);
+                                }
+
                             }
                         }else{
                             //removes the component from the loop
@@ -2309,16 +2337,37 @@ class CircuitUI{
             let matX=Array.from({length:matB.length},(_, index) => index);
             //console.log(matA,matX,matB);
             Gaussian(matA,matX,matB,this.named.length);
-            //console.log(matX);
-            for(let i=0;i<this.named.length;++i){
-                let voltage = this.circuit.getNodeVoltage(String(this.named[i]));
-                //console.log(i," matrix: ",matX[i]," simulation: ",voltage);
-                if(!isBetween(matX[i],voltage*(1+error),voltage*(1-error))){
-                    //console.log("matrix failed");
-                    return false;
+            console.log(matX);
+            if(this.analysisType=="Nodal"){
+                for(let i=0;i<this.named.length;++i){
+                    let voltage = this.circuit.getNodeVoltage(String(this.named[i]));
+                    //console.log(i," matrix: ",matX[i]," simulation: ",voltage);
+                    if(!isBetween(matX[i],voltage*(1+error),voltage*(1-error))){
+                        //console.log("matrix failed");
+                        return false;
+                    }
                 }
+                return true;
+            }else{
+                //mesh
+                //we could be way more precise about this, but for now, just check if any of the components matches the current
+                //just cuz I'm too lazy to add up every loop that goes through a component
+                for(let i=0;i<this.named.length;++i){
+                    let loopISuccessful = false;
+                    for(let j=0;j<this.named[i].length&&!loopISuccessful;++j){
+                        let current = Math.abs(this.circuit.getComponentCurrent(this.named[i][j].name));
+                        console.log(this.named[i][j].name,current);
+                        if(isBetween(matX[i],current*(1+error),current*(1-error))){
+                            loopISuccessful=true;
+                        }
+                    }
+                    if(!loopISuccessful){
+                        return false;
+                    }
+                }
+                this.named=[];
+                return true;
             }
-            return true;
         }
     }
     _showMissingInfo(){
