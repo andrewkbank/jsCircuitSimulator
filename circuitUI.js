@@ -968,7 +968,7 @@ class CircuitUI{
         if(this.analysisFeedback.length>0){
             let feedbackText="";
             for(let i=0;i<this.analysisFeedback.length;++i){
-                feedbackText+=this.analysisFeedback[i];
+                feedbackText+=this.analysisFeedback[i]+". ";
             }
             let htmlText=document.getElementById("dynamicText");
             htmlText.innerHTML=feedbackText;
