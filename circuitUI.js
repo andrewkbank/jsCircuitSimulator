@@ -965,12 +965,21 @@ class CircuitUI{
         ctx.fillText(this.numResistors,675,40);
 
         //FEEDBACK TEXT
-        //this.ctx2.fillStyle = "red";
-        //this.ctx2.textAlign = "left";
-        //this.ctx2.font = "20px Arial";
-        //for(let i=0;i<this.analysisFeedback.length;++i){
-        //    this.ctx2.fillText(this.analysisFeedback[i],10,20+i*20);
-        //}
+        if(this.analysisFeedback.length>0){
+            let feedbackText="";
+            for(let i=0;i<this.analysisFeedback.length;++i){
+                feedbackText+=this.analysisFeedback[i];
+            }
+            let htmlText=document.getElementById("dynamicText");
+            htmlText.innerHTML=feedbackText;
+            htmlText.style.color="red";
+            htmlText.style.position="absolute";
+            htmlText.style.top="10px";
+            htmlText.style.left="400px";
+            htmlText.style.fontSize="32px";
+            this.analysisFeedback={};
+            //clear the analysisFeedback array so it only sets these values once (instead of resetting the same values constantly)
+        }
         
         //Set Default Colors
         ctx.fillStyle = this.defaultStrokeColor;
