@@ -855,15 +855,6 @@ class CircuitUI{
         this.htmlCanvasElement = htmlCanvasElement;
         this.ctx = this.htmlCanvasElement.getContext("2d");
 
-        //Second Canvas (for feedback)
-        this.htmlCanvasElement2 = htmlCanvasElement2;
-        this.ctx2 = this.htmlCanvasElement2.getContext("2d");
-        // Calculate scaling factors to maintain the aspect ratio
-        let scaleX = this.htmlCanvasElement2.width / this.htmlCanvasElement2.offsetWidth;
-        let scaleY = this.htmlCanvasElement2.height / this.htmlCanvasElement2.offsetHeight;
-        // Apply the scaling factors to the context
-        this.ctx2.scale(scaleX, scaleY);
-
         //Rendering variables
         this.backgroundColor = 'rgb(240,240,240)';
         this.defaultStrokeColor = 'rgb(100,100,100)';
@@ -965,10 +956,6 @@ class CircuitUI{
         ctx.clearRect(0, 0, this.htmlCanvasElement.width, this.htmlCanvasElement.height);
         ctx.fillRect(0, 0, this.htmlCanvasElement.width, this.htmlCanvasElement.height);
 
-        this.ctx2.fillStyle = this.backgroundColor;
-        this.ctx2.clearRect(0, 0, this.htmlCanvasElement2.width*this.htmlCanvasElement2.offsetWidth, this.htmlCanvasElement2.height);
-        this.ctx2.fillRect(0, 0, this.htmlCanvasElement2.width*this.htmlCanvasElement2.offsetWidth, this.htmlCanvasElement2.height);
-
         ctx.fillStyle = "black";
         ctx.textAlign = "left";
         ctx.fillText("t = " + this.circuit.getCurrentTime().toPrecision(5) + "s", 10, 60);
@@ -977,12 +964,13 @@ class CircuitUI{
         ctx.fillText("Resistors:",660,20);
         ctx.fillText(this.numResistors,675,40);
 
-        this.ctx2.fillStyle = "red";
-        this.ctx2.textAlign = "left";
-        this.ctx2.font = "20px Arial";
-        for(let i=0;i<this.analysisFeedback.length;++i){
-            this.ctx2.fillText(this.analysisFeedback[i],10,20+i*20);
-        }
+        //FEEDBACK TEXT
+        //this.ctx2.fillStyle = "red";
+        //this.ctx2.textAlign = "left";
+        //this.ctx2.font = "20px Arial";
+        //for(let i=0;i<this.analysisFeedback.length;++i){
+        //    this.ctx2.fillText(this.analysisFeedback[i],10,20+i*20);
+        //}
         
         //Set Default Colors
         ctx.fillStyle = this.defaultStrokeColor;
