@@ -1,34 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Circuit Randomizer!">
+
+    <!-- Bootstrap + CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+
+    <title>Circuit Randomizer!</title>
+</head>
+
 <body>
-    <div>
-        Circuit Simulator
-    </div>
+    <!-- Info section -->
+    <div class="container">
+        <div class="row">
+            <section class="col-md-3">
+                <h2>
+                    Circuit Simulator
+                </h2>
 
-    <div style="display:flex;">
-        <div style="font-weight: bold;">User State: </div>
-        <div id="userStateDiv"> </div>
-    </div>
+                <div style="display:flex;">
+                    <div style="font-weight: bold;">User State: </div>
+                    <div id="userStateDiv"> </div>
+                </div>
 
-    <div style="display:flex;">
-        <div style="font-weight: bold;"> Selected Comp:  </div>
-        <div id="selectedCompDiv"></div>
+                <div style="display:flex;">
+                    <div style="font-weight: bold;"> Selected Comp:  </div>
+                    <div id="selectedCompDiv"></div>
+                </div>
+
+                <p></p>
+
+                <select class="form-select" id="menu">
+                    <option value="">Select Circuit Analysis Method</option>
+                </select>
+
+                <input style="width: 150px;" id="simulationSpeedInput" type="range" min=0 value = 30 max=300 step=1 oninput=SimulationSpeedInputChange(event)>
+            </section>
+
+            <!-- Feedback -->
+            <section class="col-md-9" style="text-align: right;">
+                <br>
+                <canvas id="feedbackCanvas" style="width:70vw; height:15vh;"></canvas>
+                <button onclick="redirectToWebsite('https://docs.google.com/document/d/1Zo0ypoeOjzJ9L55SJJ1NKIb5JLhesanlvxz-toZ5qQY/edit?usp=sharing')">How to Use</button>
+                <button onclick="redirectToWebsite('https://forms.gle/ApacCDoyffeWv8tu9')">Report Issues</button>
+            </section>
+        </div>
+
+        <hr>
+
+        <div class="row">
+            <!-- Circuit Canvas -->
+            <canvas id="circuitCanvas" style="width:95vw; height:95vh;"></canvas>
+        </div>
     </div>
-    <input id="simulationSpeedInput" type="range" min=0 value = 30 max=300 step=1 oninput=SimulationSpeedInputChange(event)>
-    <select id="menu">
-        <option value="">Select Circuit Analysis Method</option>
-    </select>
-    <canvas id="feedbackCanvas" style="width:50vw; height:10vh;">
-        <style>
-            #feedbackCanvas {
-              position: absolute;
-              top: 10px; /* Adjust the top position as needed */
-              left: 400px; /* Adjust the left position as needed */
-            }
-          </style>
-    </canvas>
-    <canvas id="circuitCanvas" style="width:95vw; height:95vh;"></canvas>
 </body>
 
 
