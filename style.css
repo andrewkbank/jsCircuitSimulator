@@ -1,3 +1,10 @@
 button {
     width: 120px;
 }
+
+#dynamicText {
+    height: 75px;
+    padding: 1%;
+    color: red;
+    font-size: 20px;
+}
