@@ -588,12 +588,6 @@ function updateDropdown(n) {
     return sum
   }
 
-  function redirectToWebsite(link){
-      console.log("redirecting");
-      //window.location.href = this.websiteURL;   //this one makes the current tab the instructions url
-      window.open(link,'_blank');      //this one opens a new tab for the instructions url
-  }
-
 //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString,
 class UIComponent{
     constructor(type="wire", startPoint=new Point(), endPoint=new Point(100,100), value, name=""){
@@ -711,14 +705,13 @@ class UIComponent{
 }
 
 class UIButton{
-    constructor(text="button", startPoint=new Point(), size=new Point(), websiteURL = "", backgroundColor = "grey", textColor = "black", highlightColor = "lightgrey"){
+    constructor(text="button", startPoint=new Point(), size=new Point(), backgroundColor = "grey", textColor = "black", highlightColor = "lightgrey"){
         this.text = text;
         this.startPoint = startPoint;
         this.size = size;
         this.backgroundColor = backgroundColor;
         this.textColor = textColor;
         this.highlightColor = highlightColor;
-        this.websiteURL=websiteURL;
     }
     setPosition(upperLeftStartPoint = new Point()){ this.startPoint = upperLeftStartPoint;  }
     setSize(widthAndHeight = new Point()){  this.size = widthAndHeight; }
@@ -872,24 +865,22 @@ class CircuitUI{
         this.resetSimulationButton = new UIButton( "Reset Simulation", new Point(10,10), new Point(150,30));
         this.increasePlotTimeScaleButton = new UIButton( "+Time", new Point(), new Point(50,30) );
         this.decreasePlotTimeScaleButton = new UIButton( "-Time", new Point(), new Point(50,30) );
-        // this.redirectButton = new UIButton("How to use simulation", new Point(1000,10), new Point(150,30),"https://docs.google.com/document/d/1Zo0ypoeOjzJ9L55SJJ1NKIb5JLhesanlvxz-toZ5qQY/edit?usp=sharing");
-        // this.reportButton = new UIButton("Report Issues", new Point(1000,50), new Point(150,30), "https://forms.gle/ApacCDoyffeWv8tu9")
-        this.randomizeButton = new UIButton("Randomize",new Point(800,10),new Point(150,30),"","green");
+        this.randomizeButton = new UIButton("Randomize",new Point(800,10),new Point(150,30),"green");
         this.increaseNodesButton = new UIButton("/\\",new Point(600,10),new Point(20,15));
         this.decreaseNodesButton = new UIButton("\\/",new Point(600,25),new Point(20,15));
         this.increaseResistorsButton = new UIButton("/\\",new Point(750,10),new Point(20,15));
         this.decreaseResistorsButton = new UIButton("\\/",new Point(750,25),new Point(20,15));
+        this.quitButton = new UIButton("Quit Analysis",new Point(975,10),new Point(150,30),"red");
         this.buttons = [
             this.plotComponentButton, 
             this.toggleSimulationRunButton, 
             this.resetSimulationButton,
             this.randomizeButton,
-            // this.redirectButton,
-            // this.reportButton,
             this.increaseNodesButton,
             this.decreaseNodesButton,
             this.increaseResistorsButton,
-            this.decreaseResistorsButton];
+            this.decreaseResistorsButton,
+            this.quitButton];
         
         //Circuit related variables
         if(circuit==null){
@@ -928,7 +919,7 @@ class CircuitUI{
         this.analysisType="";
         this.named=[];
         this.loop=[];
-        this.analysisFeedback=[];
+        this.analysisFeedback=["","When you do circuit analysis, hints and feedback will be here.<br> This project is still in development, so please report any issues you see"];
         this.highlightedComponents=[];
         this.highlightedNodes=[];
 
@@ -959,26 +950,31 @@ class CircuitUI{
 
         ctx.fillStyle = "black";
         ctx.textAlign = "left";
-        ctx.fillText("t = " + this.circuit.getCurrentTime().toPrecision(5) + "s", 10, 60);
+        ctx.fillText("t = " + this.circuit.getCurrentTime().toPrecision(5) + "s", 20, 60);
         ctx.fillText("Nodes:",525,20);
         ctx.fillText(this.numNodes,540,40);
         ctx.fillText("Resistors:",660,20);
         ctx.fillText(this.numResistors,675,40);
 
         //FEEDBACK TEXT
-        if(this.analysisFeedback.length>0){
+        if(this.analysisFeedback.length==1 && this.analysisFeedback[0]=="stay"){
+            //okay hear me out
+            //the "stay" keyword keeps the feedbackText the same
+            //then update analysis feedback (by pushing something to it), then analysisFeedback.length will not be 1 (stay will remain in the array)
+            //this is really stupid so I might fix it later
+            //-Andrew
+        }else{
             let feedbackText="";
-            for(let i=0;i<this.analysisFeedback.length;++i){
+            for(let i=1;i<this.analysisFeedback.length;++i){
                 feedbackText+=this.analysisFeedback[i]+". ";
             }
             let htmlText=document.getElementById("dynamicText");
             htmlText.innerHTML=feedbackText;
             htmlText.style.color="red";
-            htmlText.style.position="absolute";
-            htmlText.style.top="10px";
-            htmlText.style.left="400px";
-            htmlText.style.fontSize="32px";
-            this.analysisFeedback={};
+            htmlText.style.height="75px";
+            htmlText.style.fontSize="20px";
+            htmlText.style.padding="1%";
+            this.analysisFeedback=["stay"];
             //clear the analysisFeedback array so it only sets these values once (instead of resetting the same values constantly)
         }
         
@@ -1135,6 +1131,17 @@ class CircuitUI{
             this.plotComponentButton.text = "";
             this.plotComponentButton.backgroundColor = disableColor;
             this.plotComponentButton.highlightColor = disableColor;
+        }
+
+        //Quit analysis button
+        if(this.userState=="naming"||this.userState=="userAnalysis"){
+            this.quitButton.text = "Quit Analysis";
+            this.quitButton.backgroundColor = "red";
+            this.quitButton.highlightColor = "lightgrey"
+        }else{
+            this.quitButton.text = "";
+            this.quitButton.backgroundColor = disableColor;
+            this.quitButton.highlightColor = disableColor;
         }
         for(let i = 0; i<this.buttons.length;++i){
             this.buttons[i].render(this.ctx,this.mousePos);
@@ -1439,7 +1446,8 @@ class CircuitUI{
         // movingComponent
         // editingComponentValue 
         // finishingEditingComponentValue
-        // userAnalysis                takes user input for a component/nodal voltage or current
+        // userAnalysis                 takes user input for a component/nodal voltage or current
+        // naming                       takes user inputs for naming of nodes/loops in nodal/mesh analysis
 
         //console.log(this.userState);
 
@@ -1605,6 +1613,11 @@ class CircuitUI{
         }
 
         if (this.userState == "userAnalysis"){
+            if ( event.type == "mousedown" && buttonOver == this.quitButton){
+                this.userState="idle";
+                this.analysisFeedback=[];
+                this._resetSimulation();
+            }
             if (event.type == "dblclick" && componentOver != null){ //dbl click means editingComponentValue
                 //we don't want to be able to select non-resistor components (we can select their nodes tho)
                 if(componentOver.type=="r"||componentOver.type=="resistor"||componentOverSegment!="line"){
@@ -1683,6 +1696,11 @@ class CircuitUI{
             
         }
         if(this.userState=="naming"){
+            if ( event.type == "mousedown" && buttonOver == this.quitButton){
+                this.userState="idle";
+                this.analysisFeedback=[];
+                this._resetSimulation();
+            }
             if(this.analysisType=="Nodal"){
                 //nodal
                 if (event.type == "dblclick" && componentOver != null){ //dbl click means naming a node
@@ -1817,7 +1835,6 @@ class CircuitUI{
         });
     }
 
-    ///*
     loadFromSave(saveText = ""){
         saveText.replace(" ", "");
         const arr = saveText.split(";");
@@ -1938,7 +1955,8 @@ class CircuitUI{
 
         this.userState = 'idle'; //for determining what user input pattern is currently happening
     }
-    //todo: this is a big fat method that works (mostly) but needs to be refactored 
+    //todo: this is a big fat method that works (mostly) but needs to be refactored
+    //it takes in a circuitText string, then uses force directed node stuff to make a layout
     loadFromCircuitText(circuitText = ""){
         this._resetVisualComponents();
         let nodes = [];                 //the int names of the nodes
