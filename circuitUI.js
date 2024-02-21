@@ -588,6 +588,12 @@ function updateDropdown(n) {
     return sum
   }
 
+  function redirectToWebsite(link){
+      console.log("redirecting");
+      //window.location.href = this.websiteURL;   //this one makes the current tab the instructions url
+      window.open(link,'_blank');      //this one opens a new tab for the instructions url
+  }
+
 //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString,
 class UIComponent{
     constructor(type="wire", startPoint=new Point(), endPoint=new Point(100,100), value, name=""){
@@ -1488,8 +1494,6 @@ class CircuitUI{
                         }
                         break;
                     case this.resetSimulationButton: this._resetSimulation(); break;
-                    // case this.redirectButton: this.redirectButton.redirectToWebsite(); break;
-                    // case this.reportButton: this.reportButton.redirectToWebsite(); break;
                     case this.randomizeButton: 
                         this.circuit.randomize(this.numNodes,this.numResistors); 
                         //console.log(this.circuit.getCircuitText());

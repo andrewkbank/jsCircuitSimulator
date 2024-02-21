@@ -1,8 +1,9 @@
-.container{
+.container {
     padding-left: 0rem;
     padding-right: 0rem;
     overflow: hidden;
-  }
+}
+
 button {
     width: 120px;
 }
