@@ -527,7 +527,37 @@ function updateDropdown(n) {
     let popupWindow = window.open('', 'popupWindow', 'width=400,height=200');
     popupWindow.close();
   }
+  // Function to prompt the user for their name
+  function askForName() {
+    // Check if the user's name is already stored in local storage
+    let userName = localStorage.getItem('userName');
 
+    // If the user's name is not stored, prompt the user for their name
+    if (!userName) {
+        userName = prompt("Congrats on solving\nPlease enter your name:");
+
+        // Check if the user entered a name
+        if (userName) {
+            // Store the name in local storage
+            localStorage.setItem('userName', userName);
+
+            // Display a greeting
+            alert(userName + " Your name has been stored.");
+        } else {
+            // Alert the user that they did not enter a name
+            alert("You did not enter a name.");
+        }
+    } else {
+        // Display a greeting if the name is already stored
+        alert("Congrats on solving, " + userName + "!");
+    }
+  }
+  function storeSolvedCircuit(circuitText){
+    let storedCircuits = JSON.parse(localStorage.getItem('storedCircuits')) || [];
+    storedCircuits.push(circuitText);
+    console.log(storedCircuits);
+    localStorage.setItem('storedCircuits',JSON.stringify(storedCircuits));
+  }
   function isBetween(i, j, k) {
     return (i >= j && i <= k) || (i >= k && i <= j);
   }
@@ -1655,6 +1685,10 @@ class CircuitUI{
                             if(this._circuitIsDone()){
                                 //circuit analysis is done
                                 this.userState="idle";
+                                //todo: Name form + server call
+                                //store the circuit that the student solved
+                                askForName();
+                                storeSolvedCircuit(this._getCircuitText());
                             }
                         }else{
                             //user had enough info, but was incorrect
