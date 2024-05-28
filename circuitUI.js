@@ -484,18 +484,18 @@ function updateDropdown(n) {
             <label>Enter Matrix:</label>
             <br>
             <div class="gridContainer">`;
-    //console.log("matrixSize",matrixSize);
-    for(let i=0;i<matrixSize;++i){
-        //matrix
-        for(let j=0;j<matrixSize;++j){
-            htmlString+=`<div class="textInput`+String(i)+String(j)+`"><input type="text" class="textInput" id="textInput`+String(i)+String(j)+`" /></div>`
-        }
-        //V1-V99 vector (or I1-I99)
-        htmlString+=`<div class="`+char+String(i)+`"><label> `+char+String(i+1)+`</label></div>`;
-        //right side
-        htmlString+=`<div class="textInput`+String(i)+`"><input type="text" class="textInput" id="textInput`+String(i)+`" /></div>`
-    }
-    htmlString+=`
+                //console.log("matrixSize",matrixSize);
+                for(let i=0;i<matrixSize;++i){
+                    //matrix
+                    for(let j=0;j<matrixSize;++j){
+                        htmlString+=`<div class="textInput`+String(i)+String(j)+`"><input type="text" class="textInput" id="textInput`+String(i)+String(j)+`" /></div>`
+                    }
+                    //V1-V99 vector (or I1-I99)
+                    htmlString+=`<div class="`+char+String(i)+`"><label> `+char+String(i+1)+`</label></div>`;
+                    //right side
+                    htmlString+=`<div class="textInput`+String(i)+`"><input type="text" class="textInput" id="textInput`+String(i)+`" /></div>`
+                }
+                htmlString+=`
         </div> 
         <br>
         <button type="button" onclick="yeet()">Submit</button>
@@ -504,6 +504,19 @@ function updateDropdown(n) {
         window.onbeforeunload = function() {
             window.opener.postMessage(document.getElementById('textInput').value, '*');
         };
+        
+        // only pops up when user clicks on the texts first. otherwise, closes without popup warning. also shows up when user clicks submit (need to automate closing if user submits)
+        // shows default text, not customized about the matrix
+        // still need to quit analysis once user closes out of matrix
+        window.addEventListener('beforeunload', (event) => {
+            event.preventDefault();
+            event.returnValue = "Closing the matrix will end the circuit analysis! Are you sure?";
+            // if (confirm("Closing the matrix will end the circuit analysis! Are you sure?")) {
+            //     return true;
+            // } else {
+            //     return false
+            // }
+        });
 
         function yeet() {
             let matrixinfo = [];
@@ -616,6 +629,12 @@ function updateDropdown(n) {
     }
     sum/=components.length*2;
     return sum
+  }
+
+  function redirectToWebsite(link){
+      console.log("redirecting");
+      //window.location.href = this.websiteURL;   //this one makes the current tab the instructions url
+      window.open(link,'_blank');      //this one opens a new tab for the instructions url
   }
 
 //For each save we do: type, sp.x, sp.y, ep.x, ep.y, valueString,
@@ -1518,8 +1537,6 @@ class CircuitUI{
                         }
                         break;
                     case this.resetSimulationButton: this._resetSimulation(); break;
-                    // case this.redirectButton: this.redirectButton.redirectToWebsite(); break;
-                    // case this.reportButton: this.reportButton.redirectToWebsite(); break;
                     case this.randomizeButton: 
                         this.circuit.randomize(this.numNodes,this.numResistors); 
                         //console.log(this.circuit.getCircuitText());
