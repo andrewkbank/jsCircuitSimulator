@@ -468,7 +468,7 @@ function updateDropdown(n) {
             }`;
         }
         //V1-V99 vector
-        htmlString+=`.V`+String(i)+`{
+        htmlString+=`.`+char+String(i)+`{
             grid-row: `+String(i+1)+`;
             grid-column: `+String(matrixSize+1)+`;
         }`;
@@ -1136,7 +1136,7 @@ class CircuitUI{
         }
         this._renderButtons();
         this._renderPlots();
-        if(this.analysisType=="Mesh"){
+        if(this.analysisType=="Mesh"&&this.userState=="naming"){
             this._renderLoops();
         }
     }
@@ -1242,7 +1242,7 @@ class CircuitUI{
             image.id = 'renderedImage'+i; // Set a unique identifier for the image
 
             // Set the source of the image
-            image.src = "https://www.svgrepo.com/download/69401/circular-arrow.svg";
+            image.src = "circular-arrow-svgrepo-com.svg";
 
             // Calculate the top-left corner based on the center point
             const left = centerpoint.x - size / 4;
