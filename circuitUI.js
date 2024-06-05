@@ -1,5 +1,3 @@
-
-
 class Point {
     constructor(x=0, y=0) {
         this.x = Number(x);
@@ -547,29 +545,49 @@ function updateDropdown(n) {
 
     // If the user's name is not stored, prompt the user for their name
     if (!userName) {
-        userName = prompt("Congrats on solving\nPlease enter your name:");
+        userName = prompt("Please enter your name:");
 
         // Check if the user entered a name
         if (userName) {
             // Store the name in local storage
             localStorage.setItem('userName', userName);
-
-            // Display a greeting
-            alert(userName + " Your name has been stored.");
         } else {
             // Alert the user that they did not enter a name
             alert("You did not enter a name.");
+            askForName();
         }
-    } else {
-        // Display a greeting if the name is already stored
-        alert("Congrats on solving, " + userName + "!");
     }
   }
+  // Function that records the circuit that the student solved
   function storeSolvedCircuit(circuitText){
     let storedCircuits = JSON.parse(localStorage.getItem('storedCircuits')) || [];
     storedCircuits.push(circuitText);
     console.log(storedCircuits);
     localStorage.setItem('storedCircuits',JSON.stringify(storedCircuits));
+    // Display a congratulations
+    let userName = localStorage.getItem('userName');
+    alert("Congrats on solving the circuit, "+userName);
+  }
+  // Function that asks the user what they're stuck on and stores the circuit + where they got stuck
+  // also gives users the option to watch a video
+  function imStuck(circuitText,analysisType) {
+    askForName();
+    let studentQuestion = prompt("What are you stuck on, and why are you stuck?\nThis question will go straight to Prof Sawyer so please be detailed");
+    let storedStuck = JSON.parse(localStorage.getItem('storedStuck')) || [];
+    storedStuck.push([studentQuestion,circuitText,analysisType]);
+    console.log(storedStuck);
+    localStorage.setItem('storedStuck', JSON.stringify(storedStuck));
+    let openVideo = confirm("Your feedback has been recorded. Do you want to watch the video on "+analysisType+" analysis?");
+    if(openVideo){
+        if(analysisType=='Ohm'){
+            //this video isn't great, but it should work... (the other two videos are fine)
+            redirectToWebsite("https://sites.ecse.rpi.edu/~ssawyer/CircuitsF2016_all/Videos/Unit1/LEC1/Lec1.2/Lec1.2.html");
+        }else if(analysisType=='Nodal'){
+            redirectToWebsite("https://sites.ecse.rpi.edu/~ssawyer/CircuitsF2016_all/Videos/Unit1/LEC3/Lec3.1/Lec3.1.html");
+        }else if(analysisType=='Mesh'){
+            redirectToWebsite("https://sites.ecse.rpi.edu/~ssawyer/CircuitsF2016_all/Videos/Unit1/LEC3/Lec3.2/Lec3.2.html");
+        }
+    }
   }
   function isBetween(i, j, k) {
     return (i >= j && i <= k) || (i >= k && i <= j);
@@ -1192,6 +1210,16 @@ class CircuitUI{
             this.quitButton.backgroundColor = disableColor;
             this.quitButton.highlightColor = disableColor;
         }
+
+        if(this.userState=="naming"||this.userState=="userAnalysis"){
+            this.randomizeButton.text = "I'm Stuck";
+            this.randomizeButton.backgroundColor = "pink";
+        }else{
+            this.randomizeButton.text = "Randomize";
+            this.randomizeButton.backgroundColor = "green";
+        }
+
+        //Every other button
         for(let i = 0; i<this.buttons.length;++i){
             this.buttons[i].render(this.ctx,this.mousePos);
         }
@@ -1660,10 +1688,15 @@ class CircuitUI{
         }
 
         if (this.userState == "userAnalysis"){
-            if ( event.type == "mousedown" && buttonOver == this.quitButton){
-                this.userState="idle";
-                this.analysisFeedback=[];
-                this._resetSimulation();
+            if ( event.type == "mousedown"){
+                if(buttonOver == this.quitButton){
+                    this.userState="idle";
+                    this.analysisFeedback=[];
+                    this._resetSimulation();
+                }else if(buttonOver == this.randomizeButton){
+                    //I'm stuck button
+                    imStuck(this._getCircuitText(),this.analysisType);
+                }
             }
             if (event.type == "dblclick" && componentOver != null){ //dbl click means editingComponentValue
                 //we don't want to be able to select non-resistor components (we can select their nodes tho)
@@ -1747,10 +1780,15 @@ class CircuitUI{
             
         }
         if(this.userState=="naming"){
-            if ( event.type == "mousedown" && buttonOver == this.quitButton){
-                this.userState="idle";
-                this.analysisFeedback=[];
-                this._resetSimulation();
+            if ( event.type == "mousedown"){
+                if(buttonOver == this.quitButton){
+                    this.userState="idle";
+                    this.analysisFeedback=[];
+                    this._resetSimulation();
+                }else if(buttonOver == this.randomizeButton){
+                    //I'm stuck button
+                    imStuck(this._getCircuitText(),this.analysisType);
+                }
             }
             if(this.analysisType=="Nodal"){
                 //nodal
