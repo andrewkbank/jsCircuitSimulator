@@ -675,9 +675,6 @@ class UIComponent{
 
         this.voltageData = []; //used for plotting...
         this.currentData = [];
-        this.voltageMultiplier = 100;
-        this.currentMultiplier = 100;
-        this.plotTimeDivisor = 5; //for speeding up...
 
         this.renderFunction = renderWire;
         let tempVal = '1';
@@ -811,6 +808,9 @@ class UIPlot extends UIButton{
     constructor(component){
         super();
         this.component = component;
+        this.voltageMultiplier = 100;
+        this.currentMultiplier = 100;
+        this.timeMultiplier = 1; //todo
     }
     getComponent(){ return this.component;  }
     render(ctx, plotWidth, plotHeight, startX, startY, midY){
@@ -833,11 +833,13 @@ class UIPlot extends UIButton{
         this.ctx.lineTo(startX + plotWidth, midY);
         this.ctx.stroke();
         this.ctx.closePath();
+        
+        let dataLength = c.voltageData.length;
+        if (dataLength < 2) { return; }
 
         //Draw  voltage
         this.ctx.beginPath();
         this.ctx.strokeStyle = "green";
-        let dataLength = c.voltageData.length;
         
         let x = startX;
         let y = midY;
@@ -846,18 +848,16 @@ class UIPlot extends UIButton{
         let minY = 10000000000000;
         this.ctx.textAlign = "left";
         this.ctx.fillStyle = "#55FF55";
-        this.ctx.fillText(  (plotHeight*0.5/c.voltageMultiplier).toPrecision(5), startX, startY + 12 );
+        this.ctx.fillText(  (c.voltageData[dataLength-1]).toPrecision(5)+" V", startX, startY + 12 );
         this.ctx.fillStyle = "yellow";
-        this.ctx.fillText(  (plotHeight*0.5/c.currentMultiplier).toPrecision(5), startX + 70, startY + 12 );
+        this.ctx.fillText(  ((c.currentData[dataLength-1]*1000).toPrecision(5))+" mA", startX + 70, startY + 12 );
         this.ctx.fillStyle = "white";
         this.ctx.textAlign = "right";
-        this.ctx.fillText(this.component.name, startX + plotWidth, startY + 12);
+        this.ctx.fillText(this.component.name, startX + 200, startY + 12);
         this.ctx.moveTo(x,y);
 
-        if (dataLength < 2) { return; }
-
-        for (let j=Math.max(0, dataLength-plotWidth*c.plotTimeDivisor); j<dataLength; j+=c.plotTimeDivisor){
-            nextY = c.voltageData[Math.round(j)]*c.voltageMultiplier;
+        for (let j=0; j<dataLength; j+=this.timeMultiplier){
+            nextY = c.voltageData[Math.round(j)]*this.voltageMultiplier;
             if (nextY > maxY) { maxY = nextY; }
             if (nextY < minY) { minY = nextY; }
             this.ctx.lineTo(x, midY - nextY);
@@ -866,15 +866,38 @@ class UIPlot extends UIButton{
         }
         this.ctx.stroke();
         this.ctx.closePath();
-
-        if ((maxY + 20 > plotHeight/2 || minY - 20< -plotHeight/2) && c.voltageMultiplier > 1){ //decrease voltage scale
-            c.voltageMultiplier *= 0.9;
-        } else if ((maxY < plotHeight/4 && minY > -plotHeight/4) && c.voltageMultiplier < 100000){ //increase voltage scale
-            c.voltageMultiplier *= 1.1;
+        
+        //now, adjust the voltage multiplier if needed (the voltage multiplier is the scale)
+        if (maxY + 30 > plotHeight/2 && this.voltageMultiplier > 1){ //decrease voltage scale (maxY too high)
+            //this.voltageMultiplier *= 0.9;
+            //instead of incrementing the voltage multiplier, we can instead calculate the exact value it should be
+            //we do this by finding the highest voltage data point (which is maxY=maxVoltage*voltageMultiplier)
+            let maxVoltage=maxY/this.voltageMultiplier;
+            if(maxVoltage!=0){
+                this.voltageMultiplier= (plotHeight/2 -20)/maxVoltage;
+            }
         }
-
-        //now, adjust the voltage multiplier if needed
-        //if ()
+        if (minY - 20< -plotHeight/2 && this.voltageMultiplier > 1){ //decrease voltage scale (minY too low)
+            //instead of incrementing the voltage multiplier, we can instead calculate the exact value it should be
+            //we do this by finding the lowest voltage data point (which is minY=minVoltage*voltageMultiplier)
+            let minVoltage=minY/this.voltageMultiplier;
+            if(minVoltage!=0){
+                this.voltageMultiplier= (-plotHeight/2 +20)/minVoltage;
+            }
+        }
+        if (maxY < plotHeight/4 && this.voltageMultiplier < 100000){ //increase voltage scale (maxY too low)
+            //this.voltageMultiplier *= 1.1;
+            let maxVoltage=maxY/this.voltageMultiplier;
+            if(maxVoltage>0){
+                this.voltageMultiplier= (plotHeight/4)/maxVoltage;
+            }
+        }
+        if(minY > -plotHeight/4 && this.voltageMultiplier < 100000){ //increase voltage scale (minY too high)
+            let minVoltage=minY/this.voltageMultiplier;
+            if(minVoltage<0){
+                this.voltageMultiplier= (-plotHeight/4)/minVoltage;
+            }
+        }
 
         //draw current
         this.ctx.beginPath();
@@ -886,8 +909,8 @@ class UIPlot extends UIButton{
         minY=0;
         nextY = y;
         this.ctx.moveTo(x,y);
-        for (let j=Math.max(0, dataLength-plotWidth*c.plotTimeDivisor); j<dataLength; j+=c.plotTimeDivisor){
-            nextY = c.currentData[Math.round(j)]*c.currentMultiplier;
+        for (let j=0; j<dataLength; j+=this.timeMultiplier){
+            nextY = c.currentData[Math.round(j)]*this.currentMultiplier;
             if (nextY > maxY) { maxY = nextY; }
             if (nextY < minY) { minY = nextY; }
             this.ctx.lineTo(x, midY - nextY);
@@ -895,17 +918,41 @@ class UIPlot extends UIButton{
             x += 1;
         }
         this.ctx.stroke();
-        this.ctx.closePath();    
-        if ((maxY + 20 > plotHeight/2 || minY - 20 < -plotHeight/2) && c.currentMultiplier > 1){ //decrease voltage scale
-            c.currentMultiplier *= 0.9;
-        } else if ((maxY < plotHeight/4 && minY > -plotHeight/4) && c.currentMultiplier < 100000){ //increase voltage scale
-            c.currentMultiplier *= 1.1;
-        }     
+        this.ctx.closePath(); 
+        
+        //adjust the current multiplier if needed (the current multiplier is the scale)
+        if (minY - 20< -plotHeight/2 && this.currentMultiplier > 1){ //decrease current scale (minY too low)
+            //instead of incrementing the current multiplier, we can instead calculate the exact value it should be
+            //we do this by finding the lowest current data point (which is minY=minCurrent*currentMultiplier)
+            let minCurrent=minY/this.currentMultiplier;
+            if(minCurrent!=0){
+                this.currentMultiplier= (-plotHeight/2 +20)/minCurrent;
+            }
+        }
+        if (maxY < plotHeight/4 && this.currentMultiplier < 100000){ //increase voltage scale (maxY too low)
+            //this.voltageMultiplier *= 1.1;
+            let maxCurrent=maxY/this.currentMultiplier;
+            if(maxCurrent>0){
+                this.currentMultiplier= (plotHeight/4)/maxCurrent;
+            }
+        }
+        if(minY > -plotHeight/4 && this.currentMultiplier < 100000){ //increase voltage scale (minY too high)
+            let minCurrent=minY/this.currentMultiplier;
+            if(minCurrent<0){
+                this.currentMultiplier= (-plotHeight/4)/minCurrent;
+            }
+        }
+
+        //adjust the timeMultiplier (xScale) if necessary
+        if(dataLength/this.timeMultiplier>plotWidth){
+            this.timeMultiplier++;
+            console.log("Time multiplier incremented to "+this.timeMultiplier);
+        }
     }
 }
 
 class CircuitUI{
-    constructor(htmlCanvasElement, htmlCanvasElement2=null, circuit=null){
+    constructor(htmlCanvasElement, circuit=null){
         //Circuit stuff
         this.components = [];
         this.numNodes=2;
@@ -1226,7 +1273,7 @@ class CircuitUI{
     }
     _renderPlots(){
         if (this.plots.length < 1) { return; }
-        const paddingX = 20; //horizontal padding between each plot
+        const paddingX = 50; //horizontal padding between each plot
         const paddingY = 20; //vertical padding from bottom of canvas
         const plotWidth = (this.htmlCanvasElement.width / this.plots.length) - paddingX; //width of each plot
         const plotHeight = this.htmlCanvasElement.height/4; //height of each plot
@@ -2561,10 +2608,9 @@ class CircuitUI{
 //let circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,4,1000,r,r836,4,0,2000,r,r69,4,5,3000,r,r68,5,0,4000,");
 let circuit = new Circuit();
 const htmlCanvasElement = document.getElementById("circuitCanvas");
-const htmlCanvasElement2 = document.getElementById("feedbackCanvas");
 const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
-const c = new CircuitUI(htmlCanvasElement,htmlCanvasElement2,circuit);
+const c = new CircuitUI(htmlCanvasElement,circuit);
 
 //series
 //c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;r,420,180,420,280,1k;w,420,280,300,280,1;g,300,280,300,320,0;");
