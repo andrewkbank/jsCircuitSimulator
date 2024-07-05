@@ -824,7 +824,7 @@ class UIPlot extends UIButton{
 
         const c = this.component;
 
-        //Draw plot background and such
+        //Draw plot background and axes
         this.ctx.beginPath();
         this.ctx.fillStyle = "black";
         this.ctx.strokeStyle = "grey";
@@ -833,27 +833,57 @@ class UIPlot extends UIButton{
         this.ctx.lineTo(startX + plotWidth, midY);
         this.ctx.stroke();
         this.ctx.closePath();
+
+        this.ctx.beginPath();
+        this.ctx.fillStyle = "#55FF55";
+        this.ctx.strokeStyle = "#55FF55";
+        this.ctx.fillRect(startX, startY, 3, plotHeight);
+        this.ctx.fillRect(startX, startY+29, 10, 3);
+        this.ctx.textAlign = "left";
+        this.ctx.fillText(((plotHeight/2 -30)/this.voltageMultiplier).toPrecision(3)+ "V",startX+10,startY+20);
+        this.ctx.fillRect(startX, startY+plotHeight-31, 10, 3);
+        this.ctx.fillText((-(plotHeight/2 -30)/this.voltageMultiplier).toPrecision(3)+ "V",startX+10,startY+plotHeight-40);
+
+
+        this.ctx.fillStyle = "yellow";
+        this.ctx.textAlign = "right";
+        this.ctx.fillRect(startX+plotWidth, startY, 3, plotHeight);
+        this.ctx.fillText(((plotHeight/2 -30)/this.currentMultiplier*1000).toPrecision(3)+ "mA",startX+plotWidth-5,startY+20);
+        this.ctx.fillRect(startX+plotWidth-10, startY+29, 10, 3);
+        this.ctx.fillText((-(plotHeight/2 -30)/this.currentMultiplier*1000).toPrecision(3)+ "mA",startX+plotWidth-5,startY+plotHeight-40);
+        this.ctx.fillRect(startX+plotWidth-10, startY+plotHeight-31, 10, 3);
+        this.ctx.closePath();
         
+        //if there's no data yet, write a custom message and return
         let dataLength = c.voltageData.length;
-        if (dataLength < 2) { return; }
+        if (dataLength < 2) { 
+            this.ctx.beginPath();
+            this.ctx.textAlign = "left";
+            this.ctx.fillStyle = "white";
+            this.ctx.fillText(this.component.name, startX + 100, startY + 12);
+            this.ctx.textAlign = "left";
+            this.ctx.fillStyle = "red";
+            this.ctx.fillText("Click the Run Simulation button to see the voltage and current plots over time", startX + 10, startY + 50);
+            this.ctx.closePath();
+            return; 
+        }
 
         //Draw  voltage
         this.ctx.beginPath();
-        this.ctx.strokeStyle = "green";
-        
+        this.ctx.strokeStyle = "#55FF55";
         let x = startX;
         let y = midY;
         let nextY = y;
         let maxY = 0;  //maxY & minY are used for finding and adjusting the voltageMultiplier for the next cycle
         let minY = 10000000000000;
         this.ctx.textAlign = "left";
-        this.ctx.fillStyle = "#55FF55";
-        this.ctx.fillText(  (c.voltageData[dataLength-1]).toPrecision(5)+" V", startX, startY + 12 );
-        this.ctx.fillStyle = "yellow";
-        this.ctx.fillText(  ((c.currentData[dataLength-1]*1000).toPrecision(5))+" mA", startX + 70, startY + 12 );
         this.ctx.fillStyle = "white";
-        this.ctx.textAlign = "right";
-        this.ctx.fillText(this.component.name, startX + 200, startY + 12);
+        this.ctx.fillText(this.component.name, startX + 100, startY + 12);
+        this.ctx.fillStyle = "#55FF55";
+        this.ctx.fillText(  (c.voltageData[dataLength-1]).toPrecision(5)+" V", startX+150, startY + 12 );
+        this.ctx.fillStyle = "yellow";
+        this.ctx.fillText(  ((c.currentData[dataLength-1]*1000).toPrecision(5))+" mA", startX + 250, startY + 12 );
+        
         this.ctx.moveTo(x,y);
 
         for (let j=0; j<dataLength; j+=this.timeMultiplier){
@@ -874,15 +904,15 @@ class UIPlot extends UIButton{
             //we do this by finding the highest voltage data point (which is maxY=maxVoltage*voltageMultiplier)
             let maxVoltage=maxY/this.voltageMultiplier;
             if(maxVoltage!=0){
-                this.voltageMultiplier= (plotHeight/2 -20)/maxVoltage;
+                this.voltageMultiplier= (plotHeight/2 -30)/maxVoltage;
             }
         }
-        if (minY - 20< -plotHeight/2 && this.voltageMultiplier > 1){ //decrease voltage scale (minY too low)
+        if (minY - 30< -plotHeight/2 && this.voltageMultiplier > 1){ //decrease voltage scale (minY too low)
             //instead of incrementing the voltage multiplier, we can instead calculate the exact value it should be
             //we do this by finding the lowest voltage data point (which is minY=minVoltage*voltageMultiplier)
             let minVoltage=minY/this.voltageMultiplier;
             if(minVoltage!=0){
-                this.voltageMultiplier= (-plotHeight/2 +20)/minVoltage;
+                this.voltageMultiplier= (-plotHeight/2 +30)/minVoltage;
             }
         }
         if (maxY < plotHeight/4 && this.voltageMultiplier < 100000){ //increase voltage scale (maxY too low)
@@ -921,22 +951,29 @@ class UIPlot extends UIButton{
         this.ctx.closePath(); 
         
         //adjust the current multiplier if needed (the current multiplier is the scale)
-        if (minY - 20< -plotHeight/2 && this.currentMultiplier > 1){ //decrease current scale (minY too low)
-            //instead of incrementing the current multiplier, we can instead calculate the exact value it should be
-            //we do this by finding the lowest current data point (which is minY=minCurrent*currentMultiplier)
-            let minCurrent=minY/this.currentMultiplier;
-            if(minCurrent!=0){
-                this.currentMultiplier= (-plotHeight/2 +20)/minCurrent;
+        if (maxY + 30 > plotHeight/2 && this.voltageMultiplier > 1){ //decrease current scale (maxY too high)
+            //this.currentMultiplier *= 0.9;
+            //instead of incrementing the voltage multiplier, we can instead calculate the exact value it should be
+            //we do this by finding the highest voltage data point (which is maxY=maxVoltage*voltageMultiplier)
+            let maxCurrent=maxY/this.currentMultiplier;
+            if(maxCurrent!=0){
+                this.currentMultiplier= (plotHeight/2 -30)/maxCurrent;
             }
         }
-        if (maxY < plotHeight/4 && this.currentMultiplier < 100000){ //increase voltage scale (maxY too low)
+        if (minY - 30< -plotHeight/2 && this.currentMultiplier > 1){ //decrease current scale (minY too low)
+            let minCurrent=minY/this.currentMultiplier;
+            if(minCurrent!=0){
+                this.currentMultiplier= (-plotHeight/2 +30)/minCurrent;
+            }
+        }
+        if (maxY < plotHeight/4 && this.currentMultiplier < 100000){ //increase current scale (maxY too low)
             //this.voltageMultiplier *= 1.1;
             let maxCurrent=maxY/this.currentMultiplier;
             if(maxCurrent>0){
                 this.currentMultiplier= (plotHeight/4)/maxCurrent;
             }
         }
-        if(minY > -plotHeight/4 && this.currentMultiplier < 100000){ //increase voltage scale (minY too high)
+        if(minY > -plotHeight/4 && this.currentMultiplier < 100000){ //increase current scale (minY too high)
             let minCurrent=minY/this.currentMultiplier;
             if(minCurrent<0){
                 this.currentMultiplier= (-plotHeight/4)/minCurrent;
@@ -946,7 +983,6 @@ class UIPlot extends UIButton{
         //adjust the timeMultiplier (xScale) if necessary
         if(dataLength/this.timeMultiplier>plotWidth){
             this.timeMultiplier++;
-            console.log("Time multiplier incremented to "+this.timeMultiplier);
         }
     }
 }
@@ -1460,7 +1496,8 @@ class CircuitUI{
 
     _addPlot(component){
         if (component == null){ component = this.selectedComponent;}
-        if (component == null){ return; }
+        //for now, we don't plot wires
+        if (component == null || component.type=="wire"||component.type=="w"){ return; }
         //if (component instanceof UIComponent)
         if (this._removePlot(component) == false){
             this.plots.push(new UIPlot(component));
