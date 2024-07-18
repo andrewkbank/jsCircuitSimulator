@@ -2,6 +2,7 @@
 
 ## Introduction
 A circuit simulator that randomly generates circuits and walks students step-by-step through different analysis methods.
+Now live at https://sites.ecse.rpi.edu/jscircuitsimulator/
 
 ## Credits
 Basic circuit simulator started by Zack Gunther<br>
