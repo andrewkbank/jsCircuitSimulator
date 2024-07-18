@@ -560,23 +560,72 @@ function updateDropdown(n) {
   }
   // Function that records the circuit that the student solved
   function storeSolvedCircuit(circuitText){
-    let storedCircuits = JSON.parse(localStorage.getItem('storedCircuits')) || [];
-    storedCircuits.push(circuitText);
-    console.log(storedCircuits);
-    localStorage.setItem('storedCircuits',JSON.stringify(storedCircuits));
+    //let storedCircuits = JSON.parse(localStorage.getItem('storedCircuits')) || [];
+    //storedCircuits.push(circuitText);
+    //console.log(storedCircuits);
+    //localStorage.setItem('storedCircuits',JSON.stringify(storedCircuits));
     // Display a congratulations
     let userName = localStorage.getItem('userName');
     alert("Congrats on solving the circuit, "+userName);
+
+    //store userName+circuitText in the database
+    /*
+    fetch('/api/correctAnswers', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: userName, circuit: circuitText })
+    })
+    .catch(error => console.error('Error:', error));
+    */
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', 'querycorrectanswers.php', true);
+    xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            //console.log("ResponseText: "+xhr.responseText);
+        } else {
+            console.error('Request failed. Status: ' + xhr.status);
+        }
+    };
+
+    xhr.onerror = function() {
+        console.error('Request failed');
+    };
+    let params = 'name='+userName+'&circuit='+circuitText;
+    xhr.send(params);
   }
   // Function that asks the user what they're stuck on and stores the circuit + where they got stuck
   // also gives users the option to watch a video
   function imStuck(circuitText,analysisType) {
     askForName();
+    let userName = localStorage.getItem('userName');
     let studentQuestion = prompt("What are you stuck on, and why are you stuck?\nThis question will go straight to Prof Sawyer so please be detailed");
-    let storedStuck = JSON.parse(localStorage.getItem('storedStuck')) || [];
-    storedStuck.push([studentQuestion,circuitText,analysisType]);
-    console.log(storedStuck);
-    localStorage.setItem('storedStuck', JSON.stringify(storedStuck));
+    //let storedStuck = JSON.parse(localStorage.getItem('storedStuck')) || [];
+    //storedStuck.push([studentQuestion,circuitText,analysisType]);
+    //console.log(storedStuck);
+    //localStorage.setItem('storedStuck', JSON.stringify(storedStuck));
+
+    // Post data to the database
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', 'querypleasforhelp.php', true);
+    xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            //console.log("ResponseText: "+xhr.responseText);
+        } else {
+            console.error('Request failed. Status: ' + xhr.status);
+        }
+    };
+
+    xhr.onerror = function() {
+        console.error('Request failed');
+    };
+    let params = 'name='+userName+'&circuit='+circuitText+'&plea='+studentQuestion+'&analysisType='+analysisType;
+    xhr.send(params);
+
+    //open a video if the student wants it
     let openVideo = confirm("Your feedback has been recorded. Do you want to watch the video on "+analysisType+" analysis?");
     if(openVideo){
         if(analysisType=='Ohm'){
