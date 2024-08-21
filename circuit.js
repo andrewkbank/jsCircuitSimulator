@@ -398,7 +398,7 @@ class Circuit{
         string = string.split('\r').join('');
         string = string.toLowerCase();
 
-        const list = string.split(',');
+        const list = string.split('-');
         let nodeOn = 0;
 
         
@@ -819,7 +819,7 @@ class Circuit{
         this.circuitText="";
         for(let i=0;i<this.components.length;++i){
             const c = this.components[i];
-            this.circuitText+=c.getType()+","+c.name+","+c.startNode.name+","+c.endNode.name+","+c.getValue()+",";
+            this.circuitText+=c.getType()+"-"+c.name+"-"+c.startNode.name+"-"+c.endNode.name+"-"+c.getValue()+"-";
         }
         //console.log(this.circuitText);
     }

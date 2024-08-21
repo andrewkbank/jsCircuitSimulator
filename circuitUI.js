@@ -1703,6 +1703,11 @@ class CircuitUI{
                         //console.log(this.circuit.getCircuitText());
                         this.loadFromCircuitText(this.circuit.getCircuitText());
                         updateDropdown(this.numNodes);
+
+                        //set the url
+                        const newURL = `${window.location.pathname}?circuitText=${this.circuit.getCircuitText()}`;
+                        //and I can't be bothered to handle the edge case of circuitText=""
+                        history.pushState({ct: this.circuit.getCircuitText()},'',newURL);
                         break;
                     case this.increaseNodesButton: 
                         if(this.numNodes<=this.numResistors){this.numNodes++;}
@@ -2055,9 +2060,23 @@ class CircuitUI{
                 selfObject._giveHints();
             }
         });
+
+        // Event listener for when the user navigates using the back or forward buttons
+        window.addEventListener('popstate', (event) => {
+            const state = event.state;
+            if (state && state.ct) {
+                selfObject.loadFromCircuitText(state.ct);
+            } else {
+                // If no state is present, reset to the default or handle accordingly
+                selfObject.loadFromCircuitText();
+            }
+        });
     }
 
     loadFromSave(saveText = ""){
+        //this method is obsolete because loadFromCircuitText doesn't need coordinates
+        //however, it could be useful if students really want the exact same looking circuit every time
+        //that could be achieved via rng seeding so imma delete this function next push -Andrew
         saveText.replace(" ", "");
         const arr = saveText.split(";");
 
@@ -2065,7 +2084,7 @@ class CircuitUI{
             const s = arr[i];
             if (s.length < 4){  continue;   }
 
-            const a = s.split(",");
+            const a = s.split("-");
             let c;
             if (a.length == 6){
                 c = new UIComponent(a[0], new Point(a[1], a[2]), new Point(a[3], a[4]), a[5]);
@@ -2156,7 +2175,7 @@ class CircuitUI{
             const c = this.components[i];
             if (c.type == "w" || c.type == "wire") { continue; }
 
-            s += c.type+","+c.name+","+c.startNodeName+","+c.endNodeName+","+c.value+",";
+            s += c.type+"-"+c.name+"-"+c.startNodeName+"-"+c.endNodeName+"-"+c.value+"-";
         }
         //console.log(s);
         //console.log(this.nodeMap);
@@ -2177,7 +2196,7 @@ class CircuitUI{
 
         this.userState = 'idle'; //for determining what user input pattern is currently happening
     }
-    //todo: this is a big fat method that works (mostly) but needs to be refactored
+    //todo: this is a big fat method that works but needs to be refactored
     //it takes in a circuitText string, then uses force directed node stuff to make a layout
     loadFromCircuitText(circuitText = ""){
         this._resetVisualComponents();
@@ -2194,7 +2213,7 @@ class CircuitUI{
         circuitText = circuitText.split('\r').join('');
         circuitText = circuitText.toLowerCase();
 
-        const list = circuitText.split(',');    //list contains all of the components (edges)
+        const list = circuitText.split('-');    //list contains all of the components (edges)
 
         //first get a list of all of the nodes and Points
         for (let i=0; i<list.length-4; i+=5) {
@@ -2689,26 +2708,27 @@ class CircuitUI{
 }
 
 
+// Get the full URL of the current page
+const queryString = window.location.search;
 
-//let circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,0,1000,r,r836,2,0,1000,");
-//let circuit = new Circuit("v,v83,0,2,10,g,g473,0,3,0,r,r431,2,4,1000,r,r836,4,0,2000,r,r69,4,5,3000,r,r68,5,0,4000,");
-let circuit = new Circuit();
+// Parse the URL parameters
+const urlParams = new URLSearchParams(queryString);
+
+// Get the circuit text from the url (if any)
+const circuitText = urlParams.get("circuitText") || '';
+//todo: also load circuit voltage/current history data
+//and maybe load the point locations of the circuit (so the same circuit doesn't have a randomized orientation every time)
+
+//these were circuits I used to test parallel resistors and other stuff.
+//I'm leaving them in for reference of what circuitText is supposed to look like
+//let circuit = new Circuit("v-v83-0-2-10-g-g473-0-3-0-r-r431-2-0-1000-r-r836-2-0-1000-");
+//let circuit = new Circuit("v-v83-0-2-10-g-g473-0-3-0-r-r431-2-4-1000-r-r836-4-0-2000-r-r69-4-5-3000-r-r68-5-0-4000-");
+
+let circuit = new Circuit(circuitText);
 const htmlCanvasElement = document.getElementById("circuitCanvas");
 const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
 const c = new CircuitUI(htmlCanvasElement,circuit);
-
-//series
-//c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;r,420,180,420,280,1k;w,420,280,300,280,1;g,300,280,300,320,0;");
-//parallel
-//c.loadFromSave("v,300,280,300,180,10;w,420,280,300,280,1;g,300,280,300,320,0;r,300,180,420,180,1k;w,420,80,420,180,1;w,420,180,420,280,1;w,300,180,300,80,1;r,300,80,420,80,1k;");
-//parallel + series (works)
-//c.loadFromSave("v,300,280,300,180,10;w,420,280,300,280,1;g,300,280,300,320,0;r,300,180,420,180,1k;w,420,80,420,180,1;w,300,180,300,80,1;r,300,80,420,80,1k;r,420,180,420,280,1k;");
-//c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;w,420,280,300,280,1;g,300,280,300,320,0;l,420,180,420,280,1m;r,420,180,500,180,1;c,500,180,500,280,1u;w,500,280,420,280,1;");
-
-//c.loadFromSave("v,300,280,300,180,10;r,300,180,420,180,1k;r,420,180,420,280,1k;w,420,280,300,280,1;g,300,280,300,320,0;r,420,180,580,180,1k;w,580,180,580,280,1;w,580,280,420,280,1;");
-//c.loadFromSave("v,300,280,300,180,10;r,300,180,300,100,1k;w,420,280,300,280,1;g,300,280,300,320,0;r,300,180,420,180,1k;w,300,100,420,100,1;w,420,100,420,180,1;w,420,180,420,280,1;");
-
 
 function SimulationSpeedInputChange(e){
     c.numCalculationsPerRender = Math.pow(Number(speedSlider.value),2);
