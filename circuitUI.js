@@ -1040,8 +1040,6 @@ class CircuitUI{
     constructor(htmlCanvasElement, circuit=null){
         //Circuit stuff
         this.components = [];
-        this.numNodes=2;
-        this.numResistors=1;
         //add more circuit randomization parameters here
 
         //Canvas
@@ -1129,6 +1127,13 @@ class CircuitUI{
 
         updateDropdown(this.numNodes);
 
+        if(circuit==null){
+            //Massive oversight: These aren't always the starting values, especially if you load from a save
+            this.numNodes=2;
+            this.numResistors=1;
+        }else{
+            this._resetSimulation();
+        }
         this._setEventListeners(this);
         this.resize();
     }
@@ -1781,6 +1786,7 @@ class CircuitUI{
                 if (this.movedSelectedComponent){   this.editedCircuit = true;  }
                 this.movedSelectedComponent = false;
                 this.userState = "idle";
+                this._resetSimulation();
                 //find some way to get the nodal voltages to move
                 this._getCircuitText();
             }
@@ -1979,7 +1985,8 @@ class CircuitUI{
                                     });
                                 });
                                 //Be careful that you don't allow the user to push the buttons that change the number of resistors
-                                //console.log(distinctComponents.size,this.numResistors);
+                                console.log(distinctComponents);
+                                console.log(distinctComponents.size,this.numResistors);
                                 if(distinctComponents.size>=this.numResistors){
                                     //all loops have been named
                                     //console.log("next");
@@ -2053,7 +2060,10 @@ class CircuitUI{
                 //user's matrix is good
                 selfObject.userState="idle";
                 closePopup();
-                this.analysisFeedback=[];
+                selfObject.analysisFeedback=[];
+                //store the circuit that the student solved
+                askForName();
+                storeSolvedCircuit(selfObject._getCircuitText());
             }else{
                 //user's matrix is incorrect
                 console.log("matrix incorrect try again");
@@ -2402,6 +2412,8 @@ class CircuitUI{
             points[i].x=(points[i].x-minX)/rangeX * 800+100;
             points[i].y=(points[i].y-minY)/rangeY * 300+100;
         }
+        this.numResistors=0;
+
         //make the UIComponents
         for (let i=0; i<list.length-4; i+=5) {
             let type =      list[i  ];
@@ -2424,6 +2436,10 @@ class CircuitUI{
             //in the case of 1-node voltages or ground, one of the points will be undefined:
             if(point1===undefined){point1=new Point(point2.x,point2.y); point1.addi(0,50);}
             if(point2===undefined){point2=new Point(point1.x,point1.y); point2.addi(0,50);}
+
+            if (type == "r" || type =="resistor"){
+                this.numResistors++;
+            }
             c = new UIComponent(type, point1 ,point2 , value1, name);
             //console.log(c);
             //this._addComponent(c);
@@ -2442,6 +2458,16 @@ class CircuitUI{
 
         //I think this is the only way to get nodeMap to work
         //todo: refactor _getCircuitText so that generating the nodeMap is its own method
+        this.numNodes = 0;
+        //todo: come up with a better solution for counting nodes
+        for (let i = 0; i < nodes.length; i++) {
+        if (nodes[i] < 100) {
+            this.numNodes++;
+        }
+        }
+        //console.log(nodes);
+        //console.log(nodeMap);
+        //this.numNodes = nodes.length-1;
         this._resetSimulation();
     }
 
@@ -2725,6 +2751,8 @@ const circuitText = urlParams.get("circuitText") || '';
 //let circuit = new Circuit("v-v83-0-2-10-g-g473-0-3-0-r-r431-2-4-1000-r-r836-4-0-2000-r-r69-4-5-3000-r-r68-5-0-4000-");
 
 let circuit = new Circuit(circuitText);
+if(circuitText=='')
+    circuit=null;
 const htmlCanvasElement = document.getElementById("circuitCanvas");
 const speedSlider = document.getElementById("simulationSpeedInput");
 var gridSize = 20;
